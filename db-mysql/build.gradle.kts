@@ -1,0 +1,15 @@
+plugins {
+    `java-library`
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
+dependencies {
+    api(project(":api"))
+    api(libs.hikaricp)
+    api(libs.mysql.connector)
+}

@@ -1,0 +1,62 @@
+# IDCraft PROXY Config
+
+server-name:
+  type: CONFIG
+  env-var: HOSTNAME
+  value: proxy-1
+
+database:
+  provider: postgres
+  host: localhost
+  port: 5432
+  name: idcraft
+  user: idcraft
+  password: ""
+
+cache:
+  provider: REDIS
+  redis:
+    host: localhost
+    port: 6379
+    user: "default"
+    password: "CHANGEME"
+
+auth-servers:
+  lb: NONE
+  provider: CONFIG
+  shulker-tag: "idcraft-auth"
+  config:
+    - idcraft-auth-1
+
+messaging:
+  provider: BUNGEE_PLUGIN
+  redis:
+    host: localhost
+    port: 6379
+    user: "default"
+    password: "CHANGEME"
+
+auth:
+  mode: MIXED
+  session:
+    enabled: true
+    ttl: 1440
+    support:
+      crack: true
+      premium: true
+  crack:
+    allow-on-premium-username: false
+  premium:
+    skip-auth: true
+    caching:
+      enabled: true
+      ttl:
+        positive: 3600
+        negative: 600
+  floodgate:
+    skip-auth: true
+
+forwarding:
+  premium: VELOCITY_REPLICATION
+  floodgate: VELOCITY_REPLICATION
+  cracks: VELOCITY_REPLICATION

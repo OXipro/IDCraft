@@ -1,0 +1,14 @@
+{
+  "id": "idcraft",
+  "name": "IDCraft",
+  "version": "${version}",
+  "main": "com.oxipro.idcraft.plugin.velocity.IDCraftVelocityPlugin",
+  "url": "oxipro.net",
+  "authors": ["oxipro"],
+  "dependencies": [
+    {
+      "id": "floodgate",
+      "optional": true
+    }
+  ]
+}

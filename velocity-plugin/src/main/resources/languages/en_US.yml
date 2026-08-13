@@ -1,0 +1,11 @@
+fancy-name: English
+
+error:
+  no-auth-server: "No authentication server is available. Try again later."
+  auth-server-unavailable: "The authentication server is unavailable. Try again later."
+  server-switch-not-allowed: "You must authenticate before switching servers."
+  auth-denied:
+    premium-username-reserved: "This username is reserved for a premium account."
+    account-locked: "This account is temporarily locked. Try again later."
+    wired: "Connection rejected."
+    identity-provider-unavailable: "Authentication services are unavailable. Try again later."

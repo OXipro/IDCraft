@@ -3,8 +3,16 @@ plugins {
     `maven-publish`
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
 dependencies {
-    api("com.oxipro.cmu.configlang:1.0:api")
+    compileOnly(libs.configlang.api)
+    // Adventure Component is used by IAuthPrompt; the library itself targets Java 8+.
+    compileOnly(libs.adventure.api)
 }
 
 publishing {

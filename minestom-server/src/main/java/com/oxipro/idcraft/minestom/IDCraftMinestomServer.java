@@ -1,189 +1,379 @@
 package com.oxipro.idcraft.minestom;
 
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.nbt.CompoundBinaryTag;
+import com.oxipro.cmu.configlang.api.language.ILanguage;
+import com.oxipro.cmu.configlang.api.language.LanguageSettings;
+import com.oxipro.cmu.configlang.minestom.ConfigLang;
+import com.oxipro.cmu.configlang.minestom.language.LanguageManager;
+import com.oxipro.cmu.configlang.standalone.config.ConfigFile;
+import com.oxipro.cmu.configlang.standalone.language.Language;
+import com.oxipro.cssdb.CSSDB;
+import com.oxipro.idcraft.api.account.IAccountFactorRepository;
+import com.oxipro.idcraft.api.account.IAccountRepository;
+import com.oxipro.idcraft.api.auth.IAuthManager;
+import com.oxipro.idcraft.api.messaging.IMessagingProvider;
+import com.oxipro.idcraft.api.platform.PlatformType;
+import com.oxipro.idcraft.api.session.ICacheProvider;
+import com.oxipro.idcraft.api.support.servername.IServerNameProvider;
+import com.oxipro.idcraft.core.IDCraftCore;
+import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
+import com.oxipro.idcraft.minestom.auth.AuthFlowController;
+import com.oxipro.idcraft.minestom.auth.ConnectAuthGate;
+import com.oxipro.idcraft.minestom.auth.factor.AuthFactorRegistry;
+import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
+import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptSelector;
+import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
+import com.oxipro.idcraft.minestom.auth.prompt.prompts.CommandAuthPrompt;
+import com.oxipro.idcraft.minestom.auth.prompt.prompts.DialogAuthPrompt;
+import com.oxipro.idcraft.minestom.configuration.ConfigManager;
+import com.oxipro.idcraft.minestom.language.LanguagePaths;
+import com.oxipro.idcraft.minestom.language.defaultLanguage.English;
+import com.oxipro.idcraft.minestom.messaging.BungeePluginMessagingProvider;
+import com.oxipro.idcraft.minestom.network.NetworkConfig;
+import com.oxipro.idcraft.minestom.network.NetworkMode;
+import com.oxipro.idcraft.minestom.network.StandaloneNetworkBootstrap;
+import com.oxipro.idcraft.minestom.world.AuthWorldFactory;
+import com.oxipro.idcraft.minestom.world.IAuthWorldProvider;
+import com.oxipro.idcraft.redis.RedisConnectionConfig;
+import com.oxipro.idcraft.redis.providers.RedisMessagingProvider;
+import com.oxipro.idcraft.support.shulker.minestom.ShulkerMinestomImpl;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.dialog.*;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerConfigCustomClickEvent;
-import net.minestom.server.network.packet.server.common.ShowDialogPacket;
+import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerSpawnEvent;
+import net.minestom.server.network.packet.server.configuration.UpdateEnabledFeaturesPacket;
+import net.minestom.server.registry.StaticProtocolObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-public final class IDCraftMinestomServer {
+public class IDCraftMinestomServer {
 
-    private static final Key SUBMIT_KEY = Key.key("dialog_demo:submit");
-    private static final Key LANG_FR_KEY = Key.key("dialog_demo:lang_fr");
-    private static final Key LANG_EN_KEY = Key.key("dialog_demo:lang_en");
+    public static final File CONFIG_DIR = new File("config");
 
-    private static final Map<UUID, CompletableFuture<Void>> pendingAuth = new ConcurrentHashMap<>();
-    private static final Map<UUID, String> playerLang = new ConcurrentHashMap<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(IDCraftMinestomServer.class);
 
-    static void main() {
-        MinecraftServer minecraftServer = MinecraftServer.init();
-
-        var eventHandler = MinecraftServer.getGlobalEventHandler();
-
-        eventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            Player player = event.getPlayer();
-
-            // Auto-détection basique via le locale client, fallback "en"
-            String detected = "en";
-            try {
-                String locale = player.getSettings() != null ? String.valueOf(player.getSettings().locale()) : null;
-                if (locale != null && locale.toLowerCase().startsWith("fr")) {
-                    detected = "fr";
-                }
-            } catch (Exception ignored) {}
-            playerLang.put(player.getUuid(), detected);
-
-            player.sendPacket(new ShowDialogPacket(buildAuthDialog(player, null)));
-
-            CompletableFuture<Void> future = new CompletableFuture<>();
-            pendingAuth.put(player.getUuid(), future);
-            future.join();
-        });
-
-        eventHandler.addListener(PlayerConfigCustomClickEvent.class, event -> {
-            Player player = event.getPlayer();
-            Key key = event.getKey();
-
-            if (key.equals(LANG_FR_KEY) || key.equals(LANG_EN_KEY)) {
-                playerLang.put(player.getUuid(), key.equals(LANG_FR_KEY) ? "fr" : "en");
-                // On renvoie juste le dialog traduit, sans toucher au CompletableFuture
-                player.sendPacket(new ShowDialogPacket(buildAuthDialog(player, null)));
-                return;
-            }
-
-            if (!key.equals(SUBMIT_KEY)) return;
-
-            String lang = playerLang.getOrDefault(player.getUuid(), "en");
-
-            String password = "";
-            String confirm = "";
-            String email = "";
-            if (event.getPayload() instanceof CompoundBinaryTag compound) {
-                password = compound.getString("password", "");
-                confirm = compound.getString("confirm_password", "");
-                email = compound.getString("email", "");
-            }
-
-            if (password.isEmpty()) {
-                player.sendPacket(new ShowDialogPacket(buildAuthDialog(player, t(lang, "err_empty"))));
-                return;
-            }
-
-            if (!password.equals(confirm)) {
-                player.sendPacket(new ShowDialogPacket(buildAuthDialog(player, t(lang, "err_mismatch"))));
-                return;
-            }
-
-            System.out.println("=== Nouvelle inscription ===");
-            System.out.println("Joueur       : " + player.getUsername());
-            System.out.println("Mot de passe : " + "*".repeat(password.length()));
-            System.out.println("Email        : " + (email.isBlank() ? "(non fourni)" : email));
-
-            CompletableFuture<Void> future = pendingAuth.remove(player.getUuid());
-            if (future != null) future.complete(null);
-        });
-
-        minecraftServer.start("0.0.0.0", 25565);
+    public static void main(String[] args) {
+        new IDCraftMinestomServer().boot();
     }
 
-    // --- Mini-dictionnaire de traduction (à remplacer par un vrai système i18n plus tard) ---
-    private static String t(String lang, String key) {
-        Map<String, String> fr = Map.of(
-                "title", "Bienvenue, %s !",
-                "intro", "Crée un compte pour continuer à jouer.",
-                "pwd", "Mot de passe",
-                "confirm", "Confirmer le mot de passe",
-                "email", "Email (optionnel)",
-                "register", "S'inscrire",
-                "lang_button", "EN",
-                "err_empty", "Le mot de passe ne peut pas être vide.",
-                "err_mismatch", "Les mots de passe ne correspondent pas."
-        );
-        Map<String, String> en = Map.of(
-                "title", "Welcome, %s!",
-                "intro", "Create an account to continue playing.",
-                "pwd", "Password",
-                "confirm", "Confirm Password",
-                "email", "Email (optional)",
-                "register", "Register",
-                "lang_button", "FR",
-                "err_empty", "Password cannot be empty.",
-                "err_mismatch", "Passwords do not match."
-        );
-        return lang.equals("fr") ? fr.get(key) : en.get(key);
+    private final IDCraftMinestomServer server = this;
+
+    private MinecraftServer minecraftServer;
+    private NetworkConfig networkConfig;
+
+    private ConfigManager configManager;
+    private ConfigFile mainConfig;
+    private ConfigLang configLang;
+    private LanguageManager languageManager;
+
+    private IServerNameProvider serverNameProvider;
+    private IMessagingProvider messagingProvider;
+    private IAccountRepository accountRepository;
+    private IAccountFactorRepository accountFactorRepository;
+    private ICacheProvider cache;
+    private IAuthManager authManager;
+
+    private IAuthWorldProvider authWorld;
+    private AuthPromptConfig promptConfig;
+    private AuthFlowController authFlowController;
+    private final ConnectAuthGate connectAuthGate = new ConnectAuthGate();
+    private final ExecutorService asyncAuthExecutor = Executors.newFixedThreadPool(4);
+
+    private static final long CONNECT_AUTH_TIMEOUT_SECONDS = 30;
+    private static final long CONFIG_AUTH_TIMEOUT_MINUTES = 15;
+    private static final long POST_AUTH_TRANSFER_GRACE_MS = 15_000;
+
+    private ShulkerMinestomImpl shulkerMinestom;
+
+    private IDCraftCore core;
+
+    private void boot() {
+        initConfig();
+        this.networkConfig = NetworkConfig.fromConfig(mainConfig);
+
+        this.core = new IDCraftCore(LOGGER, configManager);
+        if (!core.init()) {
+            throw new IllegalStateException("IDCraft core failed to initialize");
+        }
+        if (!initMessagingProvider()) {
+            throw new IllegalStateException("Messaging provider failed to init");
+        }
+        initConfigLang();
+        initManagers();
+
+        // 1) MinecraftServer.init (+ proxy) — CONFIG or SHULKER agent
+        initNetwork();
+        // 2) worlds / auth / events (need MinecraftServer already inited)
+        initAuthUi();
+        registerEvents();
+        // 3) listen
+        startNetwork();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "idcraft-shutdown"));
+        LOGGER.info("IDCraft auth server started (network.mode={})", networkConfig.getMode());
     }
 
-    private static Dialog buildAuthDialog(Player player, String errorMessage) {
-        String lang = playerLang.getOrDefault(player.getUuid(), "en");
+    private void initConfig() {
+        if (!CONFIG_DIR.exists() && !CONFIG_DIR.mkdirs()) {
+            throw new IllegalStateException("Cannot create config directory: " + CONFIG_DIR.getAbsolutePath());
+        }
+        this.configManager = new ConfigManager(server);
+        this.mainConfig = configManager.getMain();
+    }
 
-        List<DialogBody> body = new ArrayList<>();
-        body.add(new DialogBody.PlainMessage(
-                Component.text(t(lang, "intro")),
-                DialogBody.PlainMessage.DEFAULT_WIDTH
-        ));
-        if (errorMessage != null) {
-            body.add(new DialogBody.PlainMessage(
-                    Component.text(errorMessage, NamedTextColor.RED),
-                    DialogBody.PlainMessage.DEFAULT_WIDTH
-            ));
+    public boolean initMessagingProvider() {
+        String provider = mainConfig.getString(CommonMainConfigPaths.MESSAGING_PROVIDER);
+        if (provider == null) {
+            return false;
+        }
+        switch (provider.toLowerCase(Locale.ROOT)) {
+            case "bungee_plugin":
+                this.messagingProvider = new BungeePluginMessagingProvider(server);
+                return true;
+            case "redis":
+                String host = mainConfig.getString(CommonMainConfigPaths.MESSAGING_REDIS_HOST);
+                int port = mainConfig.getInt(CommonMainConfigPaths.MESSAGING_REDIS_PORT);
+                String user = mainConfig.getString(CommonMainConfigPaths.MESSAGING_REDIS_USER);
+                String password = mainConfig.getString(CommonMainConfigPaths.MESSAGING_REDIS_PASSWORD);
+                this.messagingProvider = new RedisMessagingProvider(
+                        new RedisConnectionConfig(host, port, user, password),
+                        PlatformType.AUTH_SERVER
+                );
+                return true;
+            default:
+                LOGGER.error("Unknown messaging.provider: {}", provider);
+                return false;
+        }
+    }
+
+    private void initConfigLang() {
+        File languagesDir = new File(CONFIG_DIR, "languages");
+        if (!languagesDir.exists() && !languagesDir.mkdirs()) {
+            throw new IllegalStateException("Cannot create languages directory: " + languagesDir.getAbsolutePath());
         }
 
-        DialogMetadata metadata = new DialogMetadata(
-                Component.text(String.format(t(lang, "title"), player.getUsername())),
-                null,
-                false,
-                false,
-                DialogAfterAction.CLOSE,
-                body,
-                List.of(
-                        new DialogInput.Text(
-                                "password", DialogInput.DEFAULT_WIDTH,
-                                Component.text(t(lang, "pwd")),
-                                true, "", 64, null
-                        ),
-                        new DialogInput.Text(
-                                "confirm_password", DialogInput.DEFAULT_WIDTH,
-                                Component.text(t(lang, "confirm")),
-                                true, "", 64, null
-                        ),
-                        new DialogInput.Text(
-                                "email", DialogInput.DEFAULT_WIDTH,
-                                Component.text(t(lang, "email")),
-                                true, "", 128, null
-                        )
-                )
+        configLang = new ConfigLang(
+                CONFIG_DIR,
+                core.getCssdb().getPlayerSettingCache(),
+                core.getCssdb().getPlayerSettingsRepository()
         );
-
-        // Le bouton affiché propose de basculer vers l'AUTRE langue
-        Key toggleKey = lang.equals("fr") ? LANG_EN_KEY : LANG_FR_KEY;
-
-        return new Dialog.MultiAction(
-                metadata,
-                List.of(
-                        new DialogActionButton(
-                                Component.text(t(lang, "register")), null, DialogActionButton.DEFAULT_WIDTH,
-                                new DialogAction.DynamicCustom(SUBMIT_KEY, null)
-                        ),
-                        new DialogActionButton(
-                                Component.text(t(lang, "lang_button")), null, DialogActionButton.DEFAULT_WIDTH,
-                                new DialogAction.DynamicCustom(toggleKey, null)
-                        )
-                ),
-                null,
-                1
-        );
+        Language defaultEn = new English(server);
+        Map<Locale, ILanguage> defaultLangList = new HashMap<>();
+        defaultLangList.put(Locale.US, defaultEn);
+        LanguageSettings langSettings = new LanguageSettings.Builder().ipLanguage(true).clientLocale(true).fallbackLocale(Locale.US).build();
+        configLang.init(defaultLangList, langSettings);
+        languageManager = configLang.getLanguageManager();
     }
 
+    private void initManagers() {
+        this.authManager = core.getAuthManager();
+        this.accountRepository = core.getAccountRepository();
+        this.accountFactorRepository = core.getAccountFactorRepository();
+        this.cache = core.getCache();
+        this.serverNameProvider = core.getServerNameProvider();
+    }
+
+    private void initNetwork() {
+        if (networkConfig.getMode() == NetworkMode.SHULKER) {
+            LOGGER.info("Network mode SHULKER: agent owns MinecraftServer.init, bind and proxy");
+            shulkerMinestom = new ShulkerMinestomImpl();
+            shulkerMinestom.initServer();
+            // Agent already called MinecraftServer.init(); keep a handle for getters
+            this.minecraftServer = new MinecraftServer();
+            return;
+        }
+        this.minecraftServer = StandaloneNetworkBootstrap.init(networkConfig, LOGGER);
+    }
+
+    private void initAuthUi() {
+        this.promptConfig = AuthPromptConfig.fromConfig(mainConfig);
+        DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(languageManager, promptConfig);
+        CommandAuthPrompt commandPrompt = new CommandAuthPrompt(languageManager, promptConfig);
+        IAuthPrompt authPrompt = new AuthPromptSelector(promptConfig, dialogPrompt, commandPrompt);
+
+        dialogPrompt.registerListeners();
+        commandPrompt.registerCommands();
+
+        AuthFactorRegistry factorRegistry = new AuthFactorRegistry(promptConfig, accountFactorRepository);
+        String serverName = serverNameProvider.getCurrentServerName();
+
+        this.authFlowController = new AuthFlowController(
+                authManager,
+                accountRepository,
+                authPrompt,
+                promptConfig,
+                factorRegistry,
+                languageManager,
+                messagingProvider,
+                serverName,
+                asyncAuthExecutor
+        );
+
+        if (messagingProvider != null) {
+            messagingProvider.connectForAuthServer(connectAuthGate::allow);
+        }
+
+        this.authWorld = new AuthWorldFactory().create(mainConfig);
+    }
+
+    private void registerEvents() {
+        GlobalEventHandler eventHandler = MinecraftServer.getGlobalEventHandler();
+
+        eventHandler.addListener(AsyncPlayerConfigurationEvent.class, this::onPlayerConfiguration);
+
+        eventHandler.addListener(PlayerSpawnEvent.class, event -> {
+            if (!event.isFirstSpawn()) {
+                return;
+            }
+            if (event.getInstance() != authWorld.getInstance()) {
+                return;
+            }
+            Player player = event.getPlayer();
+            if (promptConfig.shouldHoldInConfiguration(protocolVersion(player))) {
+                // Finish the first join so Velocity can complete the connection,
+                // then immediately return to configuration for the dialogs.
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                    if (player.isOnline()) {
+                        player.startConfigurationPhase();
+                    }
+                });
+                return;
+            }
+            authFlowController.start(player);
+        });
+
+        eventHandler.addListener(PlayerDisconnectEvent.class, event -> {
+            connectAuthGate.release(event.getPlayer().getUuid());
+            authFlowController.onDisconnect(event.getPlayer());
+        });
+    }
+
+    private void onPlayerConfiguration(AsyncPlayerConfigurationEvent event) {
+        Player player = event.getPlayer();
+        boolean holdDialogs = promptConfig.shouldHoldInConfiguration(protocolVersion(player));
+
+        if (event.isFirstConfig() && messagingProvider != null
+                && !connectAuthGate.await(player.getUuid(), CONNECT_AUTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            LOGGER.warn("No proxy CONNECT_AUTH for {} within {}s", player.getUsername(), CONNECT_AUTH_TIMEOUT_SECONDS);
+            if (player.isOnline()) {
+                player.kick(connectDeniedMessage(player));
+            }
+            return;
+        }
+        if (!player.isOnline()) {
+            return;
+        }
+
+        if (holdDialogs && !event.isFirstConfig()) {
+            runConfigurationDialogs(event, player);
+            return;
+        }
+
+        assignAuthWorld(event);
+    }
+
+    private void runConfigurationDialogs(AsyncPlayerConfigurationEvent event, Player player) {
+        player.sendPacket(new UpdateEnabledFeaturesPacket(
+                event.getFeatureFlags().stream().map(StaticProtocolObject::name).toList()
+        ));
+
+        authFlowController.start(player);
+        boolean finished = authFlowController.awaitTerminal(player, CONFIG_AUTH_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        if (!player.isOnline()) {
+            return;
+        }
+        if (!finished) {
+            player.kick(connectDeniedMessage(player));
+            return;
+        }
+
+        long deadline = System.currentTimeMillis() + POST_AUTH_TRANSFER_GRACE_MS;
+        while (player.isOnline() && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (player.isOnline()) {
+            assignAuthWorld(event);
+        }
+    }
+
+    private void assignAuthWorld(AsyncPlayerConfigurationEvent event) {
+        event.setSpawningInstance(authWorld.getInstance());
+        event.getPlayer().setRespawnPoint(authWorld.getSpawn());
+    }
+
+    private Component connectDeniedMessage(Player player) {
+        try {
+            return Component.text(languageManager.getPlayerLanguage(player).getMessage(LanguagePaths.ERROR_CONNECT_NOT_ALLOWED));
+        } catch (Exception e) {
+            return Component.text("You are not allowed to join this authentication server.");
+        }
+    }
+
+    private static int protocolVersion(Player player) {
+        try {
+            return player.getPlayerConnection().getProtocolVersion();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void startNetwork() {
+        if (networkConfig.getMode() == NetworkMode.SHULKER) {
+            LOGGER.info("Network mode SHULKER");
+            shulkerMinestom.start();
+            return;
+        }
+        StandaloneNetworkBootstrap.start(networkConfig, minecraftServer, LOGGER);
+    }
+
+    private void shutdown() {
+        if (messagingProvider != null) {
+            messagingProvider.disconnect();
+        }
+        if (core != null) {
+            core.shutdown();
+        }
+        asyncAuthExecutor.shutdown();
+        try {
+            if (!asyncAuthExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                asyncAuthExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            asyncAuthExecutor.shutdownNow();
+        }
+    }
+
+    public MinecraftServer getMinecraftServer() {
+        return minecraftServer;
+    }
+
+    public InputStream getResourceAsStream(String path) {
+        return getClass().getClassLoader().getResourceAsStream(path);
+    }
+
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    public LanguageManager getLanguageManager() {
+        return languageManager;
+    }
 }

@@ -1,0 +1,100 @@
+# IDCraft AUTH SERVER Config
+
+# CONFIG  = bind + Velocity/Bungee from this file
+# SHULKER = port/secret from Shulker agent (server.properties + paper-global.yml)
+network:
+  mode: CONFIG # CONFIG | SHULKER
+  config: # only used when mode is CONFIG
+    bind:
+      host: "0.0.0.0"
+      port: 25565
+    proxy:
+      type: VELOCITY # VELOCITY | BUNGEE | NONE
+      velocity:
+        # literal secret, or env var name (e.g. VELOCITY_SECRET), or ${ENV_NAME}
+        secret: "VELOCITY_SECRET"
+
+server-name: # How do we provide this server a name
+  type: CONFIG # can be CONFIG or ENV
+  value: idcraft-auth-1 # CONFIG here
+  env-var: HOSTNAME
+
+database: # the main IDCraft database where we store all the accounts
+  provider: postgres # only postgres is supported atp
+  host: localhost
+  port: 5432
+  name: idcraft
+  user: idcraft
+  password: "PASSWORD"
+
+cache: # where we cache things like sessions and others things
+  provider: REDIS # only redis is available atp
+  redis:
+    host: localhost
+    port: 6379
+    user: "default"
+    password: "CHANGEME"
+
+messaging: # How auth servers and proxies communicates together
+  provider: BUNGEE_PLUGIN # can be BUNGEE_PLUGIN or REDIS
+  redis: # Redis is faster because it doesn't need a player to be connected to the auth server to send messages
+    host: localhost
+    port: 6379
+    user: "default"
+    password: "CHANGEME"
+
+auth:
+  world: # the world where the player will be authenticated
+    enabled: true
+    type: VOID
+    anvil:
+      path: "./authworld/"
+    spawn:
+      x: 0.5
+      y: 64
+      z: 0.5
+      yaw: 90
+      pitch: 0
+
+  prompt:
+    type: DIALOG
+    dialog:
+      # PLAYER_CONFIG = stay in configuration and show dialogs (never join the world)
+      # PLAYER_JOIN   = spawn into the auth world after the proxy allows the join
+      phase: PLAYER_JOIN
+
+  methods:
+    required:
+      - PASSWORD
+    optional:
+      - EMAIL
+      - 2FA
+    password:
+      min-length: 4
+      regex:
+        enabled: false
+        expression: "^(?=.{12,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
+    email:
+      provider: SMTP
+    2fa:
+      provider: TOTP
+      totp: ""
+    login-cooldown:
+      enabled: true
+      max-failed-attempts: 5
+      cooldown: 15
+
+  mode: CRACKED
+
+  session:
+    enabled: true
+    ttl: 1440
+    support:
+      crack: true
+      premium: true
+
+  language:
+    detect-before-register: true
+
+logger:
+  level: INFO

@@ -1,0 +1,51 @@
+fancy-name: English
+
+auth:
+  login:
+    title: "Login"
+    intro: "Enter your password"
+    password-field: "Password"
+    submit-button: "Login"
+    command-hint: "Use /login <password> to continue."
+    command-hint-2fa: "Use /login <password> <2fa-code> to continue."
+  register:
+    title: "Register"
+    intro: "Create a password to secure your account"
+    password-field: "Password"
+    confirm-field: "Confirm password"
+    submit-button: "Register"
+    command-hint: "Use /register <password> <confirm> [email] to create your account."
+    email-field: "Email (optional)"
+    password-hint: "Password must be at least %d characters."
+    password-regex-hint: "It must also match the server password policy."
+    password-no-spaces-hint: "Spaces are not allowed."
+  error:
+    password-too-short: "Your password is too short."
+    password-contains-spaces: "Password must not contain spaces."
+    password-regex-mismatch: "Your password does not meet the required format."
+    passwords-do-not-match: "Passwords don't match."
+    rate-limited: "Too many attempts, try again later."
+    account-already-exists: "This account already exists, use /login."
+    account-not-found: "No account found for this username, use /register."
+    account-locked: "This account is temporarily locked, try again later."
+    wrong-password: "Wrong password."
+    factor-invalid: "Invalid authentication code or value."
+    factor-required: "A required authentication factor is missing."
+    provider-unavailable: "Authentication services are unavailable, try again later."
+    connect-not-allowed: "You are not allowed to join this authentication server."
+  two-factor:
+    title: "Two-factor setup"
+    intro: "Enter a secret or TOTP setup value (temporary stub)."
+    code-field: "2FA code"
+    button: "Setup 2FA"
+    command-hint: "Optional: /2fa setup then /2fa confirm <code>"
+    command-setup-hint: "Use /2fa confirm <code> to finish 2FA setup."
+  factor:
+    generic:
+      title: "Factor setup"
+      intro: "Enter the required value."
+      field: "Value"
+      button: "Setup"
+    submit-button: "Confirm"
+    cancel-button: "Cancel"
+    completed-hint: "Factor setup completed. Finish registration when ready."

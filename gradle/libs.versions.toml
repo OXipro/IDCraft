@@ -1,5 +1,95 @@
 [versions]
+# Testing
 junit = "5.10.2"
 
+# Database & Connection Pooling
+hikaricp = "5.1.0"
+postgresql = "42.7.4"
+mysql-connector = "9.0.0"
+
+# Caching & Redis
+jedis = "5.2.0"
+caffeine = "3.1.8"
+
+# Security
+password4j = "1.8.2"
+
+# Serialization
+gson = "2.11.0"
+
+# Adventure API (Kyori)
+adventure = "4.22.0"
+
+# Proxy & Server Platforms
+velocity = "3.5.0-SNAPSHOT"
+minestom = "2026.08.07-26.2"
+
+# ConfigLang (CMU)
+configlang-api = "1.0"
+configlang-standalone = "1.0"
+configlang-velocity = "1.0"
+configlang-minestom = "1.0"
+
+# Custom / Internal
+cssdb = "1.0"
+
+# Logging
+slf4j = "2.0.13"
+log4j = "2.23.1"
+
+# Shulker Agents
+shulker-agent-velocity-api = "0.13.1-SNAPSHOT"
+shulker-server-agent = "0.13.1-SNAPSHOT"
+
+# Geyser / Floodgate
+floodgate = "2.2.5-SNAPSHOT"
+
+
 [libraries]
+# --- Adventure ---
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+
+# --- Testing ---
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+
+# --- Database ---
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+postgresql-driver = { module = "org.postgresql:postgresql", version.ref = "postgresql" }          # PostgreSQL
+mysql-connector = { module = "com.mysql:mysql-connector-j", version.ref = "mysql-connector" }     # MySQL
+
+# --- Redis & Caching ---
+jedis = { module = "redis.clients:jedis", version.ref = "jedis" }                                 # Redis client
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }       # Local cache
+
+# --- Security ---
+password4j = { module = "com.password4j:password4j", version.ref = "password4j" }
+
+# --- Serialization ---
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+# --- Platforms ---
+velocity = { module = "com.velocitypowered:velocity-api", version.ref = "velocity" }
+minestom = { module = "net.minestom:minestom", version.ref = "minestom" }
+
+# --- Floodgate (Velocity only) ---
+floodgate = { module = "org.geysermc.floodgate:api", version.ref = "floodgate" }
+
+# --- CSSDB (shared between Velocity & Minestom) ---
+cssdb = { module = "com.oxipro.cssdb:cssdb-api", version.ref = "cssdb" }
+
+# --- Logging ---
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
+
+# --- Shulker Agents ---
+#shulker-agent- = { module = "io.shulkermc:shulker-server-agent", version.ref = "shulker-agent-minestom" }
+shulker-agent-velocity-api = { module = "io.shulkermc:shulker-proxy-api", version.ref = "shulker-agent-velocity-api" }
+shulker-server-agent = { module = "io.shulkermc:shulker-server-agent", version.ref = "shulker-server-agent" }
+
+
+# --- ConfigLang ---
+configlang-api = { module = "com.oxipro.cmu.configlang:api", version.ref = "configlang-api" }
+configlang-standalone = { module = "com.oxipro.cmu.configlang:standalone", version.ref = "configlang-standalone" }
+configlang-minestom = { module = "com.oxipro.cmu.configlang:minestom", version.ref = "configlang-minestom" }
+configlang-velocity = { module = "com.oxipro.cmu.configlang:velocity", version.ref = "configlang-velocity" }  # Fixed: was incorrectly pointing to minestom

@@ -3,7 +3,16 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":db-postgres"))
+    implementation(project(":db-mysql"))
+    implementation(project(":redis-provider"))
+    implementation(libs.configlang.api)
+    implementation(libs.cssdb)
     api(project(":api"))
-    implementation("io.shulkermc:shulker-server-agent")
-    api("com.oxipro.cmu.configlang:1.0:minestom")
+
+    implementation(libs.password4j)
+    implementation(libs.gson)
+
+    compileOnly(libs.slf4j.api)
+    compileOnly(libs.log4j.core)
 }

@@ -7,7 +7,17 @@ plugins {
 
 dependencies {
     implementation(project(":api"))
-    implementation("net.minestom:minestom:2026.07.22-26.2")
+    implementation(project(":core"))
+    implementation(project(":db-postgres"))
+    implementation(project(":db-mysql"))
+    implementation(project(":redis-provider"))
+    implementation(project(":minestom-shulker-impl"))
+    implementation(libs.cssdb)
+    implementation(libs.configlang.minestom)
+    implementation(libs.minestom)
+
+    implementation(libs.log4j.core)
+    implementation(libs.log4j.slf4j2.impl)
 }
 
 application {
@@ -18,6 +28,7 @@ tasks.shadowJar {
     archiveBaseName.set("idcraft-minestom-server")
     archiveClassifier.set("")
     archiveVersion.set("")
+    mergeServiceFiles()
 }
 
 publishing {

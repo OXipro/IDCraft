@@ -1,0 +1,7 @@
+database:
+  provider: postgres
+  host: localhost
+  port: 5432
+  database: idcraft
+  username: idcraft
+  password: ""
