@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="IDCraft" width="560">
+  <img src="docs/idcraft.png" alt="IDCraft" width="560">
 </p>
 
 <p align="center">
