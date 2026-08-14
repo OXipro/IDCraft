@@ -194,6 +194,8 @@ Most of the behaviour above is configurable: auth mode, prompt type, dialog phas
 
 This is a rough map of how the projects are shaped, not a ranking. AuthMe, LibreLogin, nLogin, and LimboAuth are more established. Several of them support more platforms than IDCraft does today.
 
+(I have to correct a lot of this, please don't are about the comparaison)
+
 | | IDCraft | LimboAuth | LibreLogin | nLogin | AuthMe + FastLogin |
 | --- | :---: | :---: | :---: | :---: | :---: |
 | Dedicated auth servers | Yes (Minestom) | Limbo inside the proxy | Optional / backend | Backend | Paper world |
