@@ -16,6 +16,9 @@ public final class MainConfigPaths {
     public static final String AUTH_WORLD_SPAWN_Z = "auth.world.spawn.z";
     public static final String AUTH_WORLD_SPAWN_YAW = "auth.world.spawn.yaw";
     public static final String AUTH_WORLD_SPAWN_PITCH = "auth.world.spawn.pitch";
+    public static final String AUTH_WORLD_TIME_ADVANCE = "auth.world.time.advance";
+    public static final String AUTH_WORLD_TIME_VALUE = "auth.world.time.value";
+
 
     public static final String AUTH_PROMPT_TYPE = "auth.prompt.type";
     public static final String AUTH_PROMPT_DIALOG_PHASE = "auth.prompt.dialog.phase";

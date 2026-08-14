@@ -76,6 +76,18 @@ public class AuthServersManager {
         return Collections.unmodifiableList(authServers);
     }
 
+    public AuthServersProviders getProvider() {
+        return mode;
+    }
+
+    public LoadBalancerType getLoadBalancerType() {
+        return loadBalancerType;
+    }
+
+    public ILoadBalancer getLoadBalancer() {
+        return loadBalancer;
+    }
+
     public boolean isAuthServer(RegisteredServer server) {
         return server != null && isAuthServer(server.getServerInfo().getName());
     }

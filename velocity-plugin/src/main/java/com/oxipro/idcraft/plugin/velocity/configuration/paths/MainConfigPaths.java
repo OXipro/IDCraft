@@ -6,7 +6,10 @@ public class MainConfigPaths {
     public static final String AUTH_SERVERS_LB = "auth-servers.lb";
     public static final String AUTH_SERVERS_PROVIDER = "auth-servers.provider";
     public static final String AUTH_SERVERS_SHULKER_TAG = "auth-servers.shulker-tag";
-    public static final String AUTH_SERVERS_CONFIG = "auth-servers.config"; // liste de strings
+    public static final String AUTH_SERVERS_CONFIG = "auth-servers.config";
+    public static final String AUTH_SERVERS_DISABLE_TAB_COMPLETION_ENABLED = "auth-servers.disable-tab-completion.enabled";
+    public static final String AUTH_SERVERS_DISABLE_TAB_COMPLETION_MODE = "auth-servers.disable-tab-completion.mode";
+    public static final String AUTH_SERVERS_DISABLE_TAB_COMPLETION_CUSTOM_CONFIG = "auth-servers.disable-tab-completion.custom-config";
 
     // Prefer CommonMainConfigPaths for shared auth keys
 

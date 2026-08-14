@@ -16,6 +16,7 @@ import com.oxipro.idcraft.api.session.ICacheProvider;
 import com.oxipro.idcraft.api.support.servername.IServerNameProvider;
 import com.oxipro.idcraft.core.IDCraftCore;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
+import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.minestom.auth.AuthFlowController;
 import com.oxipro.idcraft.minestom.auth.ConnectAuthGate;
 import com.oxipro.idcraft.minestom.auth.factor.AuthFactorRegistry;
@@ -25,6 +26,7 @@ import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.prompts.CommandAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.prompts.DialogAuthPrompt;
 import com.oxipro.idcraft.minestom.configuration.ConfigManager;
+import com.oxipro.idcraft.minestom.configuration.paths.MainConfigPaths;
 import com.oxipro.idcraft.minestom.language.LanguagePaths;
 import com.oxipro.idcraft.minestom.language.defaultLanguage.English;
 import com.oxipro.idcraft.minestom.messaging.BungeePluginMessagingProvider;
@@ -43,20 +45,25 @@ import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
+import net.minestom.server.instance.gamerule.GameRule;
 import net.minestom.server.network.packet.server.configuration.UpdateEnabledFeaturesPacket;
 import net.minestom.server.registry.StaticProtocolObject;
+import net.minestom.server.tag.Tag;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Level;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 public class IDCraftMinestomServer {
 
@@ -87,6 +94,7 @@ public class IDCraftMinestomServer {
 
     private IAuthWorldProvider authWorld;
     private AuthPromptConfig promptConfig;
+    private IAuthPrompt authPrompt;
     private AuthFlowController authFlowController;
     private final ConnectAuthGate connectAuthGate = new ConnectAuthGate();
     private final ExecutorService asyncAuthExecutor = Executors.newFixedThreadPool(4);
@@ -100,6 +108,7 @@ public class IDCraftMinestomServer {
     private IDCraftCore core;
 
     private void boot() {
+        long startedAt = System.nanoTime();
         initConfig();
         this.networkConfig = NetworkConfig.fromConfig(mainConfig);
 
@@ -122,7 +131,9 @@ public class IDCraftMinestomServer {
         startNetwork();
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "idcraft-shutdown"));
-        LOGGER.info("IDCraft auth server started (network.mode={})", networkConfig.getMode());
+        startSummary();
+        double seconds = (System.nanoTime() - startedAt) / 1_000_000_000.0;
+        LOGGER.info("Done ({}s)!", String.format(Locale.ROOT, "%.3f", seconds));
     }
 
     private void initConfig() {
@@ -131,6 +142,9 @@ public class IDCraftMinestomServer {
         }
         this.configManager = new ConfigManager(server);
         this.mainConfig = configManager.getMain();
+        String levelRaw = mainConfig.getString(CommonMainConfigPaths.LOGGER_LEVEL);
+        Level level = levelRaw == null ? Level.INFO : Level.valueOf(levelRaw.toUpperCase(Locale.ROOT));
+        Configurator.setLevel("com.oxipro.idcraft", level);
     }
 
     public boolean initMessagingProvider() {
@@ -201,7 +215,7 @@ public class IDCraftMinestomServer {
         this.promptConfig = AuthPromptConfig.fromConfig(mainConfig);
         DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(languageManager, promptConfig);
         CommandAuthPrompt commandPrompt = new CommandAuthPrompt(languageManager, promptConfig);
-        IAuthPrompt authPrompt = new AuthPromptSelector(promptConfig, dialogPrompt, commandPrompt);
+        this.authPrompt = new AuthPromptSelector(promptConfig, dialogPrompt, commandPrompt);
 
         dialogPrompt.registerListeners();
         commandPrompt.registerCommands();
@@ -226,6 +240,11 @@ public class IDCraftMinestomServer {
         }
 
         this.authWorld = new AuthWorldFactory().create(mainConfig);
+        long time = mainConfig.getLong(MainConfigPaths.AUTH_WORLD_TIME_VALUE);
+        boolean advanceTime = mainConfig.getBoolean(MainConfigPaths.AUTH_WORLD_TIME_ADVANCE);
+        authWorld.getInstance().setTime(time);
+        authWorld.getInstance().setTag(Tag.Boolean("gamerule.advance_time"), advanceTime);
+
     }
 
     private void registerEvents() {
@@ -332,6 +351,46 @@ public class IDCraftMinestomServer {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public void startSummary() {
+        if (!StartSummary.enabled(mainConfig)) {
+            return;
+        }
+        List<String> lines = new ArrayList<>();
+        if (core != null) {
+            lines.addAll(core.commonStartSummaryLines());
+        }
+        lines.add("Messaging: " + providerLabel(CommonMainConfigPaths.MESSAGING_PROVIDER)
+                + " (" + StartSummary.className(messagingProvider) + ")");
+        if (networkConfig != null) {
+            lines.add("Network: mode=" + networkConfig.getMode()
+                    + ", bind=" + networkConfig.getBindHost() + ":" + networkConfig.getBindPort()
+                    + ", proxy=" + networkConfig.getProxyType());
+        }
+        if (authWorld != null) {
+            lines.add("World provider: " + authWorld.type() + " (" + StartSummary.className(authWorld) + ")");
+        }
+        if (promptConfig != null) {
+            lines.add("Prompt: " + promptConfig.getPromptType()
+                    + ", phase=" + promptConfig.getDialogPhase()
+                    + " (" + StartSummary.className(authPrompt) + ")");
+            lines.add("Auth methods required: " + promptConfig.getRequiredFactors());
+            lines.add("Auth methods optional: " + promptConfig.getOptionalFactors());
+            lines.add("Email provider: " + valueOrNa(promptConfig.getEmailProvider()));
+            lines.add("2FA provider: " + valueOrNa(promptConfig.getTwoFactorProvider()));
+            lines.add("Language detect-before-register: " + promptConfig.isDetectLanguageBeforeRegister());
+        }
+        StartSummary.log(LOGGER, "IDCraft " + StartSummary.idcraftVersion() + " auth server has been enabled!", lines);
+    }
+
+    private String providerLabel(String path) {
+        String raw = mainConfig.getString(path);
+        return raw == null || raw.isBlank() ? "N/A" : raw;
+    }
+
+    private static String valueOrNa(String value) {
+        return value == null || value.isBlank() ? "N/A" : value;
     }
 
     private void startNetwork() {

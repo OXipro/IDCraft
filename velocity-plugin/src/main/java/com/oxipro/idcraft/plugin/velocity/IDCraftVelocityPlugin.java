@@ -11,9 +11,12 @@ import com.oxipro.idcraft.api.platform.PlatformType;
 import com.oxipro.idcraft.core.IDCraft;
 import com.oxipro.idcraft.core.IDCraftCore;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
+import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.plugin.velocity.auth.PlayerAuthContext;
 import com.oxipro.idcraft.plugin.velocity.authservers.AuthServersManager;
+import com.oxipro.idcraft.plugin.velocity.commands.TabCompletionDisabler;
 import com.oxipro.idcraft.plugin.velocity.configuration.ConfigManager;
+import com.oxipro.idcraft.plugin.velocity.configuration.paths.MainConfigPaths;
 import com.oxipro.idcraft.plugin.velocity.forwarding.ForwardingManager;
 import com.oxipro.idcraft.plugin.velocity.language.defaultLanguage.English;
 import com.oxipro.idcraft.plugin.velocity.listeners.VelocityLoginListeners;
@@ -29,13 +32,18 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import org.geysermc.floodgate.api.FloodgateApi;
 import org.slf4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class IDCraftVelocityPlugin implements IDCraft {
 
@@ -92,6 +100,7 @@ public class IDCraftVelocityPlugin implements IDCraft {
         initUtils();
         initManagers();
         registerAll();
+        startSummary();
         logger.info("IDCraft Velocity plugin enabled");
     }
 
@@ -122,6 +131,9 @@ public class IDCraftVelocityPlugin implements IDCraft {
     public boolean initConfig() {
         this.configManager = new ConfigManager(plugin);
         this.mainConfig = configManager.getMain();
+        String levelRaw = mainConfig.getString(CommonMainConfigPaths.LOGGER_LEVEL);
+        Level level = levelRaw == null ? Level.INFO : Level.valueOf(levelRaw.toUpperCase(Locale.ROOT));
+        Configurator.setLevel("com.oxipro.idcraft", level);
         return true;
     }
 
@@ -194,6 +206,10 @@ public class IDCraftVelocityPlugin implements IDCraft {
             registerEvents(messagingProvider);
         }
 
+        if (mainConfig.getBoolean(MainConfigPaths.AUTH_SERVERS_DISABLE_TAB_COMPLETION_ENABLED)) {
+            registerEvents(new TabCompletionDisabler(plugin, authServersManager));
+        }
+
         VelocityServerListeners velocityServerListeners = new VelocityServerListeners(
                 plugin, authServersManager, forwardingManager, playerAuthContext);
 
@@ -205,6 +221,44 @@ public class IDCraftVelocityPlugin implements IDCraft {
 
     public void registerEvents(Object... listeners) {
         Arrays.stream(listeners).forEach(l -> server.getEventManager().register(plugin, l));
+    }
+
+    public void startSummary() {
+        if (!StartSummary.enabled(mainConfig)) {
+            return;
+        }
+        List<String> lines = new ArrayList<>();
+        if (core != null) {
+            lines.addAll(core.commonStartSummaryLines());
+        }
+        lines.add("Messaging: " + providerLabel(CommonMainConfigPaths.MESSAGING_PROVIDER)
+                + " (" + StartSummary.className(messagingProvider) + ")");
+        if (authServersManager != null) {
+            String authServerNames = authServersManager.getAuthServers().stream()
+                    .map(s -> s.getServerInfo().getName())
+                    .collect(Collectors.joining(", "));
+            if (authServerNames.isEmpty()) {
+                authServerNames = "none";
+            }
+            lines.add("Auth servers: provider=" + authServersManager.getProvider()
+                    + ", lb=" + authServersManager.getLoadBalancerType()
+                    + " (" + StartSummary.className(authServersManager.getLoadBalancer()) + ")");
+            lines.add("Auth servers registered: [" + authServerNames + "]");
+        }
+        lines.add("Forwarding: premium=" + providerLabel(MainConfigPaths.FORWARDING_PREMIUM)
+                + ", floodgate=" + providerLabel(MainConfigPaths.FORWARDING_FLOODGATE)
+                + ", cracks=" + providerLabel(MainConfigPaths.FORWARDING_CRACKS)
+                + " (" + StartSummary.className(forwardingManager) + ")");
+        lines.add("Floodgate: " + (floodgateApi != null ? "available" : "N/A (not installed)"));
+        lines.add("Tab completion disabler: enabled="
+                + mainConfig.getBoolean(MainConfigPaths.AUTH_SERVERS_DISABLE_TAB_COMPLETION_ENABLED)
+                + ", mode=" + providerLabel(MainConfigPaths.AUTH_SERVERS_DISABLE_TAB_COMPLETION_MODE));
+        StartSummary.log(logger, "IDCraft " + StartSummary.idcraftVersion() + " Velocity plugin has been enabled!", lines);
+    }
+
+    private String providerLabel(String path) {
+        String raw = mainConfig.getString(path);
+        return raw == null || raw.isBlank() ? "N/A" : raw;
     }
 
     public FloodgateApi getFloodgateApi() {

@@ -20,9 +20,11 @@ dependencies {
     implementation(libs.configlang.standalone)
     implementation(libs.configlang.velocity)
     implementation(libs.cssdb)
+    implementation(libs.bstats.veloicty)
     compileOnly(libs.velocity)
     compileOnly(libs.floodgate)
     compileOnly(libs.slf4j.api)
+    compileOnly(libs.log4j.core)
 }
 
 application {
@@ -34,6 +36,13 @@ tasks.shadowJar {
     archiveClassifier.set("")
     archiveVersion.set("")
     mergeServiceFiles()
+    manifest {
+        attributes("Implementation-Title" to "IDCraft", "Implementation-Version" to project.version.toString())
+    }
+
+    // Relocate bStats into the plugin's package to avoid conflicts with other
+    // plugins using bStats
+    relocate("org.bstats", project.group.toString())
 }
 
 publishing {

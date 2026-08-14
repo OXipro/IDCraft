@@ -39,6 +39,8 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.AUTH_WORLD_SPAWN_Z, 0.5);
         addDefault(MainConfigPaths.AUTH_WORLD_SPAWN_YAW, 90.0);
         addDefault(MainConfigPaths.AUTH_WORLD_SPAWN_PITCH, 0.0);
+        addDefault(MainConfigPaths.AUTH_WORLD_TIME_ADVANCE, false);
+        addDefault(MainConfigPaths.AUTH_WORLD_TIME_VALUE, 0);
 
         addDefault(MainConfigPaths.AUTH_PROMPT_TYPE, "DIALOG");
         addDefault(MainConfigPaths.AUTH_PROMPT_DIALOG_PHASE, "PLAYER_JOIN");

@@ -1,36 +1,42 @@
 # IDCraft PROXY Config
 
-server-name:
-  type: CONFIG
+server-name: # How do we provide this server a name
+  type: CONFIG # can be CONFIG or ENV
+  value: idcraft-auth-1 # CONFIG here
   env-var: HOSTNAME
-  value: proxy-1
 
-database:
-  provider: postgres
+database: # the main IDCraft database where we store all the accounts
+  provider: postgres # only postgres is supported atp
   host: localhost
   port: 5432
   name: idcraft
   user: idcraft
-  password: ""
+  password: "PASSWORD"
 
-cache:
-  provider: REDIS
+cache: # where we cache things like sessions and others more
+  provider: REDIS # only redis is available atp
   redis:
     host: localhost
     port: 6379
     user: "default"
     password: "CHANGEME"
 
-auth-servers:
-  lb: NONE
-  provider: CONFIG
+auth-servers: # The auth servers are the backends servers that handle registration and login
+  lb: NONE # How should we load balance between them: available -> NONE, ROUND_ROBIN, LEAST_PLAYERS and OPTIMAL_CHOICE
+  provider: CONFIG # How do we know what servers are IDCraft auth servers ?
   shulker-tag: "idcraft-auth"
-  config:
+  config: # Be sure servers are registered in velocity config file !
     - idcraft-auth-1
+  disable-tab-completion: # this allows you to disable tab completion (on 1.13+) on auth servers (ex: when using command auth). !! This doesn't prevent command execution
+    enabled: true # should we hide proxy commands that aren't registered by IDCraft
+    mode: ALL # can be ALL, CUSTOM_CONFIG
+    custom-config:
+      - "random-command-not-visible"
+      - sr
 
-messaging:
-  provider: BUNGEE_PLUGIN
-  redis:
+messaging: # How auth servers and proxies communicates together
+  provider: BUNGEE_PLUGIN # can be BUNGEE_PLUGIN or REDIS
+  redis: # Redis is faster because it doesn't need a player to be connected to the auth server to send messages
     host: localhost
     port: 6379
     user: "default"
@@ -60,3 +66,7 @@ forwarding:
   premium: VELOCITY_REPLICATION
   floodgate: VELOCITY_REPLICATION
   cracks: VELOCITY_REPLICATION
+
+logger:
+  level: INFO # LOG4J Standard Level enum
+  summary: true

@@ -17,6 +17,7 @@ import com.oxipro.idcraft.api.support.servername.ServerNameSourceType;
 import com.oxipro.idcraft.core.auth.AuthManager;
 import com.oxipro.idcraft.core.auth.AuthManagerConfig;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
+import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.core.mojang.HttpMojangVerifier;
 import com.oxipro.idcraft.core.password.Argon2PasswordHasher;
 import com.oxipro.idcraft.core.support.servername.ConfigServerNameProvider;
@@ -35,6 +36,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 public class IDCraftCore {
 
@@ -48,6 +51,8 @@ public class IDCraftCore {
     private IAccountRepository accountRepository;
     private IAccountFactorRepository accountFactorRepository;
     private IMojangVerifier mojangVerifier;
+    private IPasswordHasher passwordHasher;
+    private AuthManagerConfig authManagerConfig;
     private IAuthManager authManager;
     private HikariDataSource accountDataSource;
 
@@ -205,14 +210,14 @@ public class IDCraftCore {
     }
 
     private void initAuthManager() {
-        IPasswordHasher passwordHasher = new Argon2PasswordHasher();
-        AuthManagerConfig config = AuthManagerConfig.fromConfig(mainConfig).build();
+        this.passwordHasher = new Argon2PasswordHasher();
+        this.authManagerConfig = AuthManagerConfig.fromConfig(mainConfig).build();
         authManager = new AuthManager(
                 accountRepository,
                 cache,
                 mojangVerifier,
                 passwordHasher,
-                config
+                authManagerConfig
         );
     }
 
@@ -238,5 +243,49 @@ public class IDCraftCore {
 
     public IAuthManager getAuthManager() {
         return authManager;
+    }
+
+    public AuthManagerConfig getAuthManagerConfig() {
+        return authManagerConfig;
+    }
+
+    public IMojangVerifier getMojangVerifier() {
+        return mojangVerifier;
+    }
+
+    public IPasswordHasher getPasswordHasher() {
+        return passwordHasher;
+    }
+
+    public List<String> commonStartSummaryLines() {
+        List<String> lines = new ArrayList<>();
+        String serverName = serverNameProvider == null ? "N/A" : serverNameProvider.getCurrentServerName();
+        lines.add("Server name: '" + serverName + "' (" + StartSummary.className(serverNameProvider) + ")");
+        lines.add("Cache: " + providerLabel(CommonMainConfigPaths.CACHE_PROVIDER) + " (" + StartSummary.className(cache) + ")");
+        lines.add("Database: " + providerLabel(CommonMainConfigPaths.DATABASE_PROVIDER)
+                + " (" + StartSummary.className(accountRepository) + ")");
+        lines.add("CSSDB: " + StartSummary.className(cssdb) + " (" + StartSummary.packageVersion(CSSDB.class) + ")");
+        lines.add("Mojang verifier: " + StartSummary.className(mojangVerifier));
+        lines.add("Password hasher: " + StartSummary.className(passwordHasher));
+
+        if (authManagerConfig != null) {
+            lines.add("Auth mode: " + authManagerConfig.getAuthMode());
+            lines.add("Session: enabled=" + authManagerConfig.getUseSessions()
+                    + ", ttl=" + authManagerConfig.getSessionTtl().toMinutes() + "m"
+                    + ", crack=" + authManagerConfig.isSessionSupportCrack()
+                    + ", premium=" + authManagerConfig.isSessionSupportPremium());
+            lines.add("Premium skip-auth: " + authManagerConfig.getSkipAuthPremium());
+            lines.add("Floodgate skip-auth: " + authManagerConfig.getSkipAuthFloodgate());
+            lines.add("Crack allow-on-premium-username: " + authManagerConfig.isAllowOnPremiumUsername());
+            lines.add("Login cooldown: enabled=" + authManagerConfig.isLoginCooldownEnabled()
+                    + ", maxFailed=" + authManagerConfig.getMaxFailedAttempts()
+                    + ", duration=" + authManagerConfig.getLoginCooldown().toMinutes() + "m");
+        }
+        return lines;
+    }
+
+    private String providerLabel(String path) {
+        String raw = mainConfig.getString(path);
+        return raw == null || raw.isBlank() ? "N/A" : raw;
     }
 }

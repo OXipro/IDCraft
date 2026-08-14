@@ -2,6 +2,7 @@ package com.oxipro.idcraft.core.configuration.defaultConfigs;
 
 import com.oxipro.cmu.configlang.api.config.IConfigFile;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
+import org.slf4j.event.Level;
 
 public class CommonDefaultMainConfig {
 
@@ -48,5 +49,8 @@ public class CommonDefaultMainConfig {
         c.addDefault(CommonMainConfigPaths.AUTH_LOGIN_COOLDOWN_ENABLED, true);
         c.addDefault(CommonMainConfigPaths.AUTH_LOGIN_COOLDOWN_MAX_FAILED, 5);
         c.addDefault(CommonMainConfigPaths.AUTH_LOGIN_COOLDOWN_MINUTES, 15L);
+
+        c.addDefault(CommonMainConfigPaths.LOGGER_LEVEL, Level.INFO.toString());
+        c.addDefault(CommonMainConfigPaths.LOGGER_SUMMARY, true);
     }
 }

@@ -27,7 +27,7 @@ database: # the main IDCraft database where we store all the accounts
   user: idcraft
   password: "PASSWORD"
 
-cache: # where we cache things like sessions and others things
+cache: # where we cache things like sessions and others more
   provider: REDIS # only redis is available atp
   redis:
     host: localhost
@@ -55,9 +55,12 @@ auth:
       z: 0.5
       yaw: 90
       pitch: 0
+    time: # How do we manage time on the world ?
+      advance: false # Should we advance time (like doDaylightCycle true ?)
+      value: 0  # the value will be set at the world start (in ticks)
 
   prompt:
-    type: DIALOG
+    type: DIALOG # can be DIALOG, COMMAND or AUTO
     dialog:
       # PLAYER_CONFIG = stay in configuration and show dialogs (never join the world)
       # PLAYER_JOIN   = spawn into the auth world after the proxy allows the join
@@ -98,3 +101,4 @@ auth:
 
 logger:
   level: INFO
+  summary: true

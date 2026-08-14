@@ -29,6 +29,9 @@ tasks.shadowJar {
     archiveClassifier.set("")
     archiveVersion.set("")
     mergeServiceFiles()
+    manifest {
+        attributes("Implementation-Title" to "IDCraft", "Implementation-Version" to project.version.toString())
+    }
 }
 
 publishing {

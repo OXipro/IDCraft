@@ -8,10 +8,11 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.tag.Tag;
 
 public class VoidAuthWorldProvider implements IAuthWorldProvider {
 
-    private final Instance instance;
+    private final InstanceContainer instance;
     private final Pos spawn;
 
     public VoidAuthWorldProvider(AuthWorldConfig config) {
@@ -27,7 +28,7 @@ public class VoidAuthWorldProvider implements IAuthWorldProvider {
     }
 
     @Override
-    public Instance getInstance() {
+    public InstanceContainer getInstance() {
         return instance;
     }
 

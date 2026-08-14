@@ -53,4 +53,6 @@ public class CommonMainConfigPaths {
     public static final String AUTH_LOGIN_COOLDOWN_MAX_FAILED = "auth.methods.login-cooldown.max-failed-attempts";
     public static final String AUTH_LOGIN_COOLDOWN_MINUTES = "auth.methods.login-cooldown.cooldown";
 
+    public static final String LOGGER_LEVEL = "logger.level";
+    public static final String LOGGER_SUMMARY = "logger.summary";
 }

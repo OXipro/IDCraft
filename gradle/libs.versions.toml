@@ -44,6 +44,8 @@ shulker-server-agent = "0.13.1-SNAPSHOT"
 # Geyser / Floodgate
 floodgate = "2.2.5-SNAPSHOT"
 
+# stats
+bstats-velocity = "3.2.1"
 
 [libraries]
 # --- Adventure ---
@@ -59,7 +61,6 @@ mysql-connector = { module = "com.mysql:mysql-connector-j", version.ref = "mysql
 
 # --- Redis & Caching ---
 jedis = { module = "redis.clients:jedis", version.ref = "jedis" }                                 # Redis client
-caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }       # Local cache
 
 # --- Security ---
 password4j = { module = "com.password4j:password4j", version.ref = "password4j" }
@@ -93,3 +94,6 @@ configlang-api = { module = "com.oxipro.cmu.configlang:api", version.ref = "conf
 configlang-standalone = { module = "com.oxipro.cmu.configlang:standalone", version.ref = "configlang-standalone" }
 configlang-minestom = { module = "com.oxipro.cmu.configlang:minestom", version.ref = "configlang-minestom" }
 configlang-velocity = { module = "com.oxipro.cmu.configlang:velocity", version.ref = "configlang-velocity" }  # Fixed: was incorrectly pointing to minestom
+
+# --- stats ---
+bstats-veloicty = { module = "org.bstats:bstats-velocity", version.ref = "bstats-velocity"}

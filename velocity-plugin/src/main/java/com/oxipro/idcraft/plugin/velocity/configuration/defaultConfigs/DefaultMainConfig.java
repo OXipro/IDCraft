@@ -29,6 +29,8 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.AUTH_SERVERS_PROVIDER, "CONFIG");
         addDefault(MainConfigPaths.AUTH_SERVERS_SHULKER_TAG, "idcraft-auth");
         addDefault(MainConfigPaths.AUTH_SERVERS_CONFIG, List.of("idcraft-auth-1"));
+        addDefault(MainConfigPaths.AUTH_SERVERS_DISABLE_TAB_COMPLETION_ENABLED, true);
+        addDefault(MainConfigPaths.AUTH_SERVERS_DISABLE_TAB_COMPLETION_MODE, "ALL");
 
         addDefault(MainConfigPaths.FORWARDING_PREMIUM, "VELOCITY_REPLICATION");
         addDefault(MainConfigPaths.FORWARDING_FLOODGATE, "VELOCITY_REPLICATION");

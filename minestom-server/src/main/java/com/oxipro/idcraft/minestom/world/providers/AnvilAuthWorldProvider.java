@@ -14,7 +14,7 @@ import java.nio.file.Path;
 
 public class AnvilAuthWorldProvider implements IAuthWorldProvider {
 
-    private final Instance instance;
+    private final InstanceContainer instance;
     private final Pos spawn;
 
     public AnvilAuthWorldProvider(AuthWorldConfig config) {
@@ -36,7 +36,7 @@ public class AnvilAuthWorldProvider implements IAuthWorldProvider {
     }
 
     @Override
-    public Instance getInstance() {
+    public InstanceContainer getInstance() {
         return instance;
     }
 
