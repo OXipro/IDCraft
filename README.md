@@ -246,7 +246,7 @@ Beta. Fine for testing and feedback. Not for production.
 - [Minestom](https://minestom.net/) and [Velocity](https://papermc.io/software/velocity)
 - [Shulker](https://github.com/OXipro/Shulker) (optional fleet / agent setup)
 - [OXipro](https://github.com/OXipro) (author)
-- configlang and cssdb (same author: YAML languages / config, and the settings database)
+- [configlang](https://github.com/OXipro/cmu-config-lang) and [cssdb](https://github.com/OXipro/cssdb-api) (same author: YAML languages / config, and the settings database)
 
 
 Parts of the codebase were produced with AI assistance, then reviewed and completed by hand.
