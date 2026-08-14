@@ -12,40 +12,30 @@ public class English extends Language {
 
     public English(IDCraftMinestomServer server) {
         super(new ConfigFile(
-                languageFile(),
+                new File(IDCraftMinestomServer.CONFIG_DIR, ConfigsType.LANG_EN.filePath),
                 server.getResourceAsStream(ConfigsType.LANG_EN.filePath)
         ));
-        saveDefaults();
     }
 
-    private static File languageFile() {
-        File file = new File(IDCraftMinestomServer.CONFIG_DIR, ConfigsType.LANG_EN.filePath);
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            parent.mkdirs();
-        }
-        return file;
-    }
-
-    private void saveDefaults() {
+    @Override
+    protected void saveDefaults() {
         addDefault(LanguagePaths.LANGUAGE_FANCY_NAME, "English");
 
         addDefault(LanguagePaths.LOGIN_TITLE, "Login");
         addDefault(LanguagePaths.LOGIN_INTRO, "Enter your password");
         addDefault(LanguagePaths.LOGIN_PASSWORD_FIELD, "Password");
         addDefault(LanguagePaths.LOGIN_SUBMIT_BUTTON, "Login");
-        addDefault(LanguagePaths.LOGIN_COMMAND_HINT, "Use /login <password> to continue.");
-        addDefault(LanguagePaths.LOGIN_COMMAND_HINT_2FA, "Use /login <password> <2fa-code> to continue.");
+        addDefault(LanguagePaths.LOGIN_COMMAND_HINT, "Use /login \\<password> to continue.");
+        addDefault(LanguagePaths.LOGIN_COMMAND_HINT_2FA, "Use /login \\<password> \\<2fa-code> to continue.");
 
         addDefault(LanguagePaths.REGISTER_TITLE, "Register");
         addDefault(LanguagePaths.REGISTER_INTRO, "Create a password to secure your account");
         addDefault(LanguagePaths.REGISTER_PASSWORD_FIELD, "Password");
         addDefault(LanguagePaths.REGISTER_CONFIRM_FIELD, "Confirm password");
         addDefault(LanguagePaths.REGISTER_SUBMIT_BUTTON, "Register");
-        addDefault(LanguagePaths.REGISTER_COMMAND_HINT, "Use /register <password> <confirm> [email] to create your account.");
+        addDefault(LanguagePaths.REGISTER_COMMAND_HINT, "Use /register \\<password> \\<confirm> [email] to create your account.");
         addDefault(LanguagePaths.REGISTER_EMAIL_FIELD, "Email (optional)");
-        addDefault(LanguagePaths.REGISTER_PASSWORD_HINT, "Password must be at least %d characters.");
+        addDefault(LanguagePaths.REGISTER_PASSWORD_HINT, "Password must be at least %MIN_LENGTH% characters.");
         addDefault(LanguagePaths.REGISTER_PASSWORD_REGEX_HINT, "It must also match the server password policy.");
         addDefault(LanguagePaths.REGISTER_PASSWORD_NO_SPACES_HINT, "Spaces are not allowed.");
 
@@ -67,8 +57,8 @@ public class English extends Language {
         addDefault(LanguagePaths.TWO_FACTOR_INTRO, "Enter a secret or TOTP setup value (temporary stub).");
         addDefault(LanguagePaths.TWO_FACTOR_CODE_FIELD, "2FA code");
         addDefault(LanguagePaths.TWO_FACTOR_BUTTON, "Setup 2FA");
-        addDefault(LanguagePaths.TWO_FACTOR_COMMAND_HINT, "Optional: /2fa setup then /2fa confirm <code>");
-        addDefault(LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT, "Use /2fa confirm <code> to finish 2FA setup.");
+        addDefault(LanguagePaths.TWO_FACTOR_COMMAND_HINT, "Optional: /2fa setup then /2fa confirm \\<code>");
+        addDefault(LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT, "Use /2fa confirm \\<code> to finish 2FA setup.");
 
         addDefault(LanguagePaths.FACTOR_GENERIC_TITLE, "Factor setup");
         addDefault(LanguagePaths.FACTOR_GENERIC_INTRO, "Enter the required value.");
@@ -77,5 +67,7 @@ public class English extends Language {
         addDefault(LanguagePaths.FACTOR_SUBMIT_BUTTON, "Confirm");
         addDefault(LanguagePaths.FACTOR_CANCEL_BUTTON, "Cancel");
         addDefault(LanguagePaths.FACTOR_COMPLETED_HINT, "Factor setup completed. Finish registration when ready.");
+
+        save(true);
     }
 }

@@ -1,13 +1,12 @@
 package com.oxipro.idcraft.minestom.auth.prompt.prompts;
 
-import com.oxipro.cmu.configlang.api.language.ILanguage;
-import com.oxipro.cmu.configlang.minestom.language.LanguageManager;
 import com.oxipro.idcraft.api.auth.AuthFactor;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.LoginSubmission;
 import com.oxipro.idcraft.minestom.auth.prompt.RegisterSubmission;
 import com.oxipro.idcraft.minestom.language.LanguagePaths;
+import com.oxipro.idcraft.minestom.utils.MessageUtil;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -43,14 +42,14 @@ public class CommandAuthPrompt implements IAuthPrompt {
         }
     }
 
-    private final LanguageManager languageManager;
+    private final MessageUtil messages;
     private final AuthPromptConfig config;
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
     private final Map<UUID, RegisterState> registerStates = new ConcurrentHashMap<>();
     private boolean commandsRegistered;
 
-    public CommandAuthPrompt(LanguageManager languageManager, AuthPromptConfig config) {
-        this.languageManager = languageManager;
+    public CommandAuthPrompt(MessageUtil messages, AuthPromptConfig config) {
+        this.messages = messages;
         this.config = config;
     }
 
@@ -173,11 +172,10 @@ public class CommandAuthPrompt implements IAuthPrompt {
     @Override
     public void requestLogin(Player player, Consumer<LoginSubmission> onSubmit, boolean needTotp) {
         pending.put(player.getUuid(), new Pending.Login(onSubmit));
-        ILanguage lang = languageManager.getPlayerLanguage(player);
         if (needTotp) {
-            player.sendMessage(Component.text(lang.getMessage(LanguagePaths.LOGIN_COMMAND_HINT_2FA)));
+            player.sendMessage(messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT_2FA));
         } else {
-            player.sendMessage(Component.text(lang.getMessage(LanguagePaths.LOGIN_COMMAND_HINT)));
+            player.sendMessage(messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT));
         }
     }
 
@@ -185,18 +183,16 @@ public class CommandAuthPrompt implements IAuthPrompt {
     public void requestRegister(Player player, Consumer<RegisterSubmission> onSubmit, Map<AuthFactor, Consumer<String>> factorSetupHandlers) {
         registerStates.put(player.getUuid(), new RegisterState(onSubmit, factorSetupHandlers));
         pending.put(player.getUuid(), new Pending.Register());
-        ILanguage lang = languageManager.getPlayerLanguage(player);
-        player.sendMessage(Component.text(lang.getMessage(LanguagePaths.REGISTER_COMMAND_HINT)));
+        player.sendMessage(messages.message(player, LanguagePaths.REGISTER_COMMAND_HINT));
         if (config.isFactorEnabled(AuthFactor.TWO_FACTOR) && factorSetupHandlers.containsKey(AuthFactor.TWO_FACTOR)) {
-            player.sendMessage(Component.text(lang.getMessage(LanguagePaths.TWO_FACTOR_COMMAND_HINT)));
+            player.sendMessage(messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_HINT));
         }
     }
 
     @Override
     public void requestFactorSetup(Player player, AuthFactor factor, Consumer<String> onSubmit) {
         pending.put(player.getUuid(), new Pending.FactorSetup(factor, onSubmit));
-        ILanguage lang = languageManager.getPlayerLanguage(player);
-        player.sendMessage(Component.text(lang.getMessage(LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT)));
+        player.sendMessage(messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT));
     }
 
     @Override
@@ -207,8 +203,7 @@ public class CommandAuthPrompt implements IAuthPrompt {
         }
         state.completedFactors.add(factor);
         pending.put(player.getUuid(), new Pending.Register());
-        ILanguage lang = languageManager.getPlayerLanguage(player);
-        player.sendMessage(Component.text(lang.getMessage(LanguagePaths.FACTOR_COMPLETED_HINT)));
+        player.sendMessage(messages.message(player, LanguagePaths.FACTOR_COMPLETED_HINT));
     }
 
     @Override

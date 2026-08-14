@@ -6,17 +6,17 @@ auth:
     intro: "Enter your password"
     password-field: "Password"
     submit-button: "Login"
-    command-hint: "Use /login <password> to continue."
-    command-hint-2fa: "Use /login <password> <2fa-code> to continue."
+    command-hint: "Use /login \\<password> to continue."
+    command-hint-2fa: "Use /login \\<password> \\<2fa-code> to continue."
   register:
     title: "Register"
     intro: "Create a password to secure your account"
     password-field: "Password"
     confirm-field: "Confirm password"
     submit-button: "Register"
-    command-hint: "Use /register <password> <confirm> [email] to create your account."
+    command-hint: "Use /register \\<password> \\<confirm> [email] to create your account."
     email-field: "Email (optional)"
-    password-hint: "Password must be at least %d characters."
+    password-hint: "Password must be at least %MIN_LENGTH% characters."
     password-regex-hint: "It must also match the server password policy."
     password-no-spaces-hint: "Spaces are not allowed."
   error:
@@ -38,8 +38,8 @@ auth:
     intro: "Enter a secret or TOTP setup value (temporary stub)."
     code-field: "2FA code"
     button: "Setup 2FA"
-    command-hint: "Optional: /2fa setup then /2fa confirm <code>"
-    command-setup-hint: "Use /2fa confirm <code> to finish 2FA setup."
+    command-hint: "Optional: /2fa setup then /2fa confirm \\<code>"
+    command-setup-hint: "Use /2fa confirm \\<code> to finish 2FA setup."
   factor:
     generic:
       title: "Factor setup"

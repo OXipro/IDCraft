@@ -26,17 +26,34 @@ It sits in the same space as LimboAuth, LibreLogin, nLogin, AuthMe + FastLogin, 
 
 There is no proxy-only mode, and there probably never will be. Velocity cannot host the full auth UI (including configuration-phase dialogs). The proxy handles identity and forwarding. Auth servers handle the prompt.
 
-This project was written with the help of AI coding tools. [OXipro](https://github.com/OXipro) designed it, wrote a large part of the important logic, and remains the author. The AI help is mentioned here on purpose.
+This project was written with the help of AI coding tools. See more in the <a href="#credits">Credits</a> parts.
 
 ---
 
 ## Screenshots
 
-Add images under `docs/` with the names below.
+[//]: # (Add images under `docs/` with the names below.)
 
+#### Register Dialogs (PLAYER_CONFIG)
+<p align="center">
+  <img src="docs/register-dialogs-config.png" alt="Configuration-phase register dialogs">
+</p>
+
+#### Login Dialogs (PLAYER_CONFIG)
 <p align="center">
   <img src="docs/demo-login.png" alt="Configuration-phase login dialogs">
 </p>
+
+#### Login Commands
+<p align="center">
+  <img src="docs/command-login-config.png" alt="Account locked after too much wrong passwords">
+</p>
+
+#### Account Locked
+<p align="center">
+  <img src="docs/account-locked.png" alt="Account locked after too much wrong passwords">
+</p>
+
 
 [//]: # (Later)
 [//]: # (<p align="center"><sub>Configuration-phase dialogs &#40;login / register without joining a world&#41;.<br>)
@@ -152,7 +169,7 @@ Floodgate is supported natively. In `MIXED` mode Bedrock players keep their Floo
 
 ### Languages
 
-Messages are normal YAML language files. [configlang](https://github.com/OXipro) is a small library that loads those files on Velocity and Minestom and picks a language for the player. [cssdb](https://github.com/OXipro) is the settings database configlang uses to store the player's choice.
+Messages are normal YAML language files. [CMU-config-lang](https://github.com/OXipro/cmu-config-lang) is a small library that loads those files on Velocity and Minestom and picks a language for the player. [CSSDB](https://github.com/OXipro/cssdb-api) is the settings database configlang uses to store the player's choice.
 
 A player language can come from:
 
@@ -246,10 +263,12 @@ Beta. Fine for testing and feedback. Not for production.
 - [Minestom](https://minestom.net/) and [Velocity](https://papermc.io/software/velocity)
 - [Shulker](https://github.com/OXipro/Shulker) (optional fleet / agent setup)
 - [OXipro](https://github.com/OXipro) (author)
-- configlang and cssdb (same author: YAML languages / config, and the settings database)
-
+-  [CMU-config-lang](https://github.com/OXipro/cmu-config-lang) and [CSSDB](https://github.com/OXipro/cssdb-api) (same author: [YAML](https://snakeyaml.com) languages / config, and the settings database)
+- Logo made by me with [BlockBench](https://www.blockbench.net) and the [Minecraft Title Plugin](https://ewanhowell.com/plugins/minecraft-title-generator)
 
 Parts of the codebase were produced with AI assistance, then reviewed and completed by hand.
+I designed it, wrote a large part of the important logic, and remains the author. The AI help is mentioned here on purpose.
+
 
 ---
 

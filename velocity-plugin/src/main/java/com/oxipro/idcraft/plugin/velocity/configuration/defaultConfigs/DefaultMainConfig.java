@@ -20,7 +20,7 @@ public class DefaultMainConfig extends ConfigFile {
         setDefaults();
     }
 
-    public void setDefaults() {
+    private void setDefaults() {
         CommonDefaultMainConfig.applyCommonDefaults(this);
 
         addDefault(CommonMainConfigPaths.SERVER_NAME_VALUE, "proxy-1");
@@ -35,5 +35,7 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.FORWARDING_PREMIUM, "VELOCITY_REPLICATION");
         addDefault(MainConfigPaths.FORWARDING_FLOODGATE, "VELOCITY_REPLICATION");
         addDefault(MainConfigPaths.FORWARDING_CRACKS, "VELOCITY_REPLICATION");
+
+        save(true);
     }
 }

@@ -29,6 +29,7 @@ import com.oxipro.idcraft.minestom.configuration.ConfigManager;
 import com.oxipro.idcraft.minestom.configuration.paths.MainConfigPaths;
 import com.oxipro.idcraft.minestom.language.LanguagePaths;
 import com.oxipro.idcraft.minestom.language.defaultLanguage.English;
+import com.oxipro.idcraft.minestom.utils.MessageUtil;
 import com.oxipro.idcraft.minestom.messaging.BungeePluginMessagingProvider;
 import com.oxipro.idcraft.minestom.network.NetworkConfig;
 import com.oxipro.idcraft.minestom.network.NetworkMode;
@@ -84,6 +85,7 @@ public class IDCraftMinestomServer {
     private ConfigFile mainConfig;
     private ConfigLang configLang;
     private LanguageManager languageManager;
+    private MessageUtil messageUtil;
 
     private IServerNameProvider serverNameProvider;
     private IMessagingProvider messagingProvider;
@@ -189,6 +191,7 @@ public class IDCraftMinestomServer {
         LanguageSettings langSettings = new LanguageSettings.Builder().ipLanguage(true).clientLocale(true).fallbackLocale(Locale.US).build();
         configLang.init(defaultLangList, langSettings);
         languageManager = configLang.getLanguageManager();
+        messageUtil = new MessageUtil(languageManager);
     }
 
     private void initManagers() {
@@ -213,8 +216,8 @@ public class IDCraftMinestomServer {
 
     private void initAuthUi() {
         this.promptConfig = AuthPromptConfig.fromConfig(mainConfig);
-        DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(languageManager, promptConfig);
-        CommandAuthPrompt commandPrompt = new CommandAuthPrompt(languageManager, promptConfig);
+        DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(messageUtil, promptConfig);
+        CommandAuthPrompt commandPrompt = new CommandAuthPrompt(messageUtil, promptConfig);
         this.authPrompt = new AuthPromptSelector(promptConfig, dialogPrompt, commandPrompt);
 
         dialogPrompt.registerListeners();
@@ -229,7 +232,7 @@ public class IDCraftMinestomServer {
                 authPrompt,
                 promptConfig,
                 factorRegistry,
-                languageManager,
+                messageUtil,
                 messagingProvider,
                 serverName,
                 asyncAuthExecutor
@@ -339,7 +342,7 @@ public class IDCraftMinestomServer {
 
     private Component connectDeniedMessage(Player player) {
         try {
-            return Component.text(languageManager.getPlayerLanguage(player).getMessage(LanguagePaths.ERROR_CONNECT_NOT_ALLOWED));
+            return messageUtil.message(player, LanguagePaths.ERROR_CONNECT_NOT_ALLOWED);
         } catch (Exception e) {
             return Component.text("You are not allowed to join this authentication server.");
         }
@@ -434,5 +437,9 @@ public class IDCraftMinestomServer {
 
     public LanguageManager getLanguageManager() {
         return languageManager;
+    }
+
+    public MessageUtil getMessageUtil() {
+        return messageUtil;
     }
 }

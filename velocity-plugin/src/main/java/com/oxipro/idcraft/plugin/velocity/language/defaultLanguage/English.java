@@ -15,14 +15,13 @@ public class English extends Language {
                 languageFile(plugin),
                 plugin.getResourceAsStream(ConfigsType.LANG_EN.filePath)
         ));
-        saveDefaults();
     }
 
     private static File languageFile(IDCraftVelocityPlugin plugin) {
         return new File(plugin.getPluginData().toFile(), ConfigsType.LANG_EN.filePath);
     }
 
-    private void saveDefaults() {
+    public void saveDefaults() {
         addDefault(LanguagePaths.LANGUAGE_FANCY_NAME, "English");
         addDefault(LanguagePaths.ERROR_NO_AUTH_SERVER, "No authentication server is available. Try again later.");
         addDefault(LanguagePaths.ERROR_AUTH_SERVER_UNAVAILABLE, "The authentication server is unavailable. Try again later.");
@@ -31,5 +30,6 @@ public class English extends Language {
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_ACCOUNT_LOCKED, "This account is temporarily locked. Try again later.");
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_WIRED, "Connection rejected.");
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_IDENTITY_PROVIDER_UNAVAILABLE, "Authentication services are unavailable. Try again later.");
+        save(true);
     }
 }

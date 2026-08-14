@@ -50,6 +50,7 @@ bstats-velocity = "3.2.1"
 [libraries]
 # --- Adventure ---
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 
 # --- Testing ---
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }

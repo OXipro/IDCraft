@@ -1,7 +1,5 @@
 package com.oxipro.idcraft.minestom.auth;
 
-import com.oxipro.cmu.configlang.api.language.ILanguage;
-import com.oxipro.cmu.configlang.minestom.language.LanguageManager;
 import com.oxipro.idcraft.api.account.IAccountRepository;
 import com.oxipro.idcraft.api.auth.AuthErrorCode;
 import com.oxipro.idcraft.api.auth.AuthFactor;
@@ -14,7 +12,7 @@ import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.LoginSubmission;
 import com.oxipro.idcraft.minestom.auth.prompt.RegisterSubmission;
 import com.oxipro.idcraft.api.messaging.IMessagingProvider;
-import com.oxipro.idcraft.minestom.language.LanguagePaths;
+import com.oxipro.idcraft.minestom.utils.MessageUtil;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -44,7 +42,7 @@ public class AuthFlowController {
     private final IAuthPrompt authPrompt;
     private final AuthPromptConfig promptConfig;
     private final AuthFactorRegistry factorRegistry;
-    private final LanguageManager languageManager;
+    private final MessageUtil messages;
     private final IMessagingProvider messagingProvider;
     private final String authServerName;
     private final ExecutorService asyncExecutor;
@@ -59,7 +57,7 @@ public class AuthFlowController {
             IAuthPrompt authPrompt,
             AuthPromptConfig promptConfig,
             AuthFactorRegistry factorRegistry,
-            LanguageManager languageManager,
+            MessageUtil messages,
             IMessagingProvider messagingProvider,
             String authServerName,
             ExecutorService asyncExecutor
@@ -69,7 +67,7 @@ public class AuthFlowController {
         this.authPrompt = authPrompt;
         this.promptConfig = promptConfig;
         this.factorRegistry = factorRegistry;
-        this.languageManager = languageManager;
+        this.messages = messages;
         this.messagingProvider = messagingProvider;
         this.authServerName = authServerName;
         this.asyncExecutor = asyncExecutor;
@@ -270,56 +268,7 @@ public class AuthFlowController {
     }
 
     private Component translateError(Player player, AuthErrorCode errorCode) {
-        ILanguage language = languageManager.getPlayerLanguage(player);
-        String path;
-        switch (errorCode) {
-            case PASSWORD_TOO_SHORT:
-                path = LanguagePaths.ERROR_PASSWORD_TOO_SHORT;
-                break;
-            case PASSWORD_CONTAINS_SPACES:
-                path = LanguagePaths.ERROR_PASSWORD_CONTAINS_SPACES;
-                break;
-            case PASSWORD_REGEX_MISMATCH:
-                path = LanguagePaths.ERROR_PASSWORD_REGEX_MISMATCH;
-                break;
-            case PASSWORDS_DO_NOT_MATCH:
-                path = LanguagePaths.ERROR_PASSWORDS_DO_NOT_MATCH;
-                break;
-            case RATE_LIMITED:
-                path = LanguagePaths.ERROR_RATE_LIMITED;
-                break;
-            case ACCOUNT_ALREADY_EXISTS:
-                path = LanguagePaths.ERROR_ACCOUNT_ALREADY_EXISTS;
-                break;
-            case ACCOUNT_NOT_FOUND:
-                path = LanguagePaths.ERROR_ACCOUNT_NOT_FOUND;
-                break;
-            case ACCOUNT_LOCKED:
-                path = LanguagePaths.ERROR_ACCOUNT_LOCKED;
-                break;
-            case WRONG_PASSWORD:
-                path = LanguagePaths.ERROR_WRONG_PASSWORD;
-                break;
-            case PREMIUM_USERNAME_RESERVED:
-                path = LanguagePaths.ERROR_ACCOUNT_ALREADY_EXISTS;
-                break;
-            case FACTOR_INVALID:
-                path = LanguagePaths.ERROR_FACTOR_INVALID;
-                break;
-            case FACTOR_REQUIRED:
-                path = LanguagePaths.ERROR_FACTOR_REQUIRED;
-                break;
-            case PROVIDER_UNAVAILABLE:
-                path = LanguagePaths.ERROR_PROVIDER_UNAVAILABLE;
-                break;
-            case UUID_MISMATCH:
-                path = LanguagePaths.ERROR_WRONG_PASSWORD;
-                break;
-            default:
-                path = LanguagePaths.ERROR_WRONG_PASSWORD;
-                break;
-        }
-        return Component.text(language.getMessage(path));
+        return messages.authError(player, errorCode);
     }
 
     private void runMain(Runnable task) {

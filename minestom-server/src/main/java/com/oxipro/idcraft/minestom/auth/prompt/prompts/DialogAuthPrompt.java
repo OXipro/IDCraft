@@ -1,13 +1,15 @@
 package com.oxipro.idcraft.minestom.auth.prompt.prompts;
 
 import com.oxipro.cmu.configlang.api.language.ILanguage;
-import com.oxipro.cmu.configlang.minestom.language.LanguageManager;
 import com.oxipro.idcraft.api.auth.AuthFactor;
+import com.oxipro.idcraft.core.utils.message.PlaceholderKeys;
+import com.oxipro.idcraft.core.utils.message.Placeholders;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.LoginSubmission;
 import com.oxipro.idcraft.minestom.auth.prompt.RegisterSubmission;
 import com.oxipro.idcraft.minestom.language.LanguagePaths;
+import com.oxipro.idcraft.minestom.utils.MessageUtil;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
@@ -62,14 +64,14 @@ public class DialogAuthPrompt implements IAuthPrompt {
         }
     }
 
-    private final LanguageManager languageManager;
+    private final MessageUtil messages;
     private final AuthPromptConfig config;
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
     private final Map<UUID, RegisterState> registerStates = new ConcurrentHashMap<>();
     private final Map<UUID, Consumer<String>> activeFactorConsumer = new ConcurrentHashMap<>();
 
-    public DialogAuthPrompt(LanguageManager languageManager, AuthPromptConfig config) {
-        this.languageManager = languageManager;
+    public DialogAuthPrompt(MessageUtil messages, AuthPromptConfig config) {
+        this.messages = messages;
         this.config = config;
     }
 
@@ -227,34 +229,42 @@ public class DialogAuthPrompt implements IAuthPrompt {
     }
 
     private ILanguage resolveLoginLanguage(Player player) {
-        return languageManager.getPlayerLanguage(player);
+        return messages.languageOf(player);
     }
 
     private ILanguage resolveRegisterLanguage(Player player) {
         if (config.isDetectLanguageBeforeRegister()) {
-            return languageManager.detectPlayerLanguage(player);
+            return messages.detectLanguage(player);
         }
-        return languageManager.getPlayerLanguage(player);
+        return messages.languageOf(player);
+    }
+
+    private Component text(Player player, ILanguage lang, String path) {
+        return messages.message(player, lang, path);
+    }
+
+    private Component text(Player player, ILanguage lang, String path, Placeholders placeholders) {
+        return messages.message(player, lang, path, placeholders);
     }
 
     private void showLoginDialog(Player player, Component error, boolean needTotp) {
         ILanguage lang = resolveLoginLanguage(player);
 
         List<DialogBody> body = new ArrayList<>();
-        body.add(plain(lang.getMessage(LanguagePaths.LOGIN_INTRO)));
+        body.add(plain(text(player, lang, LanguagePaths.LOGIN_INTRO)));
         addError(body, error);
 
         List<DialogInput> inputs = new ArrayList<>();
-        inputs.add(textField(FIELD_PASSWORD, lang.getMessage(LanguagePaths.LOGIN_PASSWORD_FIELD), ""));
+        inputs.add(textField(FIELD_PASSWORD, text(player, lang, LanguagePaths.LOGIN_PASSWORD_FIELD), ""));
         if (needTotp) {
-            inputs.add(textField(FIELD_TOTP, lang.getMessage(LanguagePaths.TWO_FACTOR_CODE_FIELD), ""));
+            inputs.add(textField(FIELD_TOTP, text(player, lang, LanguagePaths.TWO_FACTOR_CODE_FIELD), ""));
         }
 
         List<DialogActionButton> buttons = List.of(
-                button(lang.getMessage(LanguagePaths.LOGIN_SUBMIT_BUTTON), LOGIN_SUBMIT)
+                button(text(player, lang, LanguagePaths.LOGIN_SUBMIT_BUTTON), LOGIN_SUBMIT)
         );
 
-        show(player, buildDialog(lang.getMessage(LanguagePaths.LOGIN_TITLE), body, inputs, buttons));
+        show(player, buildDialog(text(player, lang, LanguagePaths.LOGIN_TITLE), body, inputs, buttons));
     }
 
     private void showRegisterDialog(Player player, Component error) {
@@ -265,23 +275,23 @@ public class DialogAuthPrompt implements IAuthPrompt {
         ILanguage lang = resolveRegisterLanguage(player);
 
         List<DialogBody> body = new ArrayList<>();
-        body.add(plain(lang.getMessage(LanguagePaths.REGISTER_INTRO)));
+        body.add(plain(text(player, lang, LanguagePaths.REGISTER_INTRO)));
         if (config.isFactorEnabled(AuthFactor.PASSWORD)) {
-            body.add(plain(passwordHint(lang)));
+            body.add(plain(passwordHint(player, lang)));
         }
         addError(body, error);
 
         List<DialogInput> inputs = new ArrayList<>();
         if (config.isFactorEnabled(AuthFactor.PASSWORD)) {
-            inputs.add(textField(FIELD_PASSWORD, lang.getMessage(LanguagePaths.REGISTER_PASSWORD_FIELD), ""));
-            inputs.add(textField(FIELD_CONFIRM_PASSWORD, lang.getMessage(LanguagePaths.REGISTER_CONFIRM_FIELD), ""));
+            inputs.add(textField(FIELD_PASSWORD, text(player, lang, LanguagePaths.REGISTER_PASSWORD_FIELD), ""));
+            inputs.add(textField(FIELD_CONFIRM_PASSWORD, text(player, lang, LanguagePaths.REGISTER_CONFIRM_FIELD), ""));
         }
         if (config.isFactorEnabled(AuthFactor.EMAIL)) {
-            inputs.add(textField(FIELD_EMAIL, lang.getMessage(LanguagePaths.REGISTER_EMAIL_FIELD), ""));
+            inputs.add(textField(FIELD_EMAIL, text(player, lang, LanguagePaths.REGISTER_EMAIL_FIELD), ""));
         }
 
         List<DialogActionButton> buttons = new ArrayList<>();
-        buttons.add(button(lang.getMessage(LanguagePaths.REGISTER_SUBMIT_BUTTON), REGISTER_SUBMIT));
+        buttons.add(button(text(player, lang, LanguagePaths.REGISTER_SUBMIT_BUTTON), REGISTER_SUBMIT));
 
         for (AuthFactor factor : AuthFactor.values()) {
             if (!factor.requiresSetupMenu() || !config.isFactorEnabled(factor)) {
@@ -290,70 +300,73 @@ public class DialogAuthPrompt implements IAuthPrompt {
             if (!state.factorSetupHandlers.containsKey(factor)) {
                 continue;
             }
-            String label = factorButtonLabel(lang, factor);
+            Component label = factorButtonLabel(player, lang, factor);
             if (state.completedFactors.contains(factor)) {
-                label = "\u2714 " + label;
+                label = Component.text("\u2714 ").append(label);
             }
             buttons.add(button(label, openKey(factor)));
         }
 
-        show(player, buildDialog(lang.getMessage(LanguagePaths.REGISTER_TITLE), body, inputs, buttons));
+        show(player, buildDialog(text(player, lang, LanguagePaths.REGISTER_TITLE), body, inputs, buttons));
     }
 
     private void showFactorSetupDialog(Player player, AuthFactor factor, Component error) {
         ILanguage lang = resolveRegisterLanguage(player);
 
         List<DialogBody> body = new ArrayList<>();
-        body.add(plain(factorIntro(lang, factor)));
+        body.add(plain(factorIntro(player, lang, factor)));
         addError(body, error);
 
         List<DialogInput> inputs = List.of(
-                textField(FIELD_FACTOR_VALUE, factorFieldLabel(lang, factor), "")
+                textField(FIELD_FACTOR_VALUE, factorFieldLabel(player, lang, factor), "")
         );
 
         List<DialogActionButton> buttons = List.of(
-                button(lang.getMessage(LanguagePaths.FACTOR_SUBMIT_BUTTON), FACTOR_SUBMIT),
-                button(lang.getMessage(LanguagePaths.FACTOR_CANCEL_BUTTON), FACTOR_CANCEL)
+                button(text(player, lang, LanguagePaths.FACTOR_SUBMIT_BUTTON), FACTOR_SUBMIT),
+                button(text(player, lang, LanguagePaths.FACTOR_CANCEL_BUTTON), FACTOR_CANCEL)
         );
 
-        show(player, buildDialog(factorTitle(lang, factor), body, inputs, buttons));
+        show(player, buildDialog(factorTitle(player, lang, factor), body, inputs, buttons));
     }
 
-    private String passwordHint(ILanguage lang) {
-        String hint = String.format(lang.getMessage(LanguagePaths.REGISTER_PASSWORD_HINT), config.getMinPasswordLength());
-        hint = hint + " " + lang.getMessage(LanguagePaths.REGISTER_PASSWORD_NO_SPACES_HINT);
+    private Component passwordHint(Player player, ILanguage lang) {
+        Placeholders placeholders = Placeholders.of(PlaceholderKeys.MIN_LENGTH, config.getMinPasswordLength());
+        Component hint = text(player, lang, LanguagePaths.REGISTER_PASSWORD_HINT, placeholders)
+                .append(Component.space())
+                .append(text(player, lang, LanguagePaths.REGISTER_PASSWORD_NO_SPACES_HINT, placeholders));
         if (config.isPasswordRegexEnabled()) {
-            hint = hint + " " + lang.getMessage(LanguagePaths.REGISTER_PASSWORD_REGEX_HINT);
+            hint = hint.append(Component.space())
+                    .append(text(player, lang, LanguagePaths.REGISTER_PASSWORD_REGEX_HINT, placeholders));
         }
         return hint;
     }
 
-    private String factorTitle(ILanguage lang, AuthFactor factor) {
+    private Component factorTitle(Player player, ILanguage lang, AuthFactor factor) {
         if (factor == AuthFactor.TWO_FACTOR) {
-            return lang.getMessage(LanguagePaths.TWO_FACTOR_TITLE);
+            return text(player, lang, LanguagePaths.TWO_FACTOR_TITLE);
         }
-        return lang.getMessage(LanguagePaths.FACTOR_GENERIC_TITLE);
+        return text(player, lang, LanguagePaths.FACTOR_GENERIC_TITLE);
     }
 
-    private String factorIntro(ILanguage lang, AuthFactor factor) {
+    private Component factorIntro(Player player, ILanguage lang, AuthFactor factor) {
         if (factor == AuthFactor.TWO_FACTOR) {
-            return lang.getMessage(LanguagePaths.TWO_FACTOR_INTRO);
+            return text(player, lang, LanguagePaths.TWO_FACTOR_INTRO);
         }
-        return lang.getMessage(LanguagePaths.FACTOR_GENERIC_INTRO);
+        return text(player, lang, LanguagePaths.FACTOR_GENERIC_INTRO);
     }
 
-    private String factorFieldLabel(ILanguage lang, AuthFactor factor) {
+    private Component factorFieldLabel(Player player, ILanguage lang, AuthFactor factor) {
         if (factor == AuthFactor.TWO_FACTOR) {
-            return lang.getMessage(LanguagePaths.TWO_FACTOR_CODE_FIELD);
+            return text(player, lang, LanguagePaths.TWO_FACTOR_CODE_FIELD);
         }
-        return lang.getMessage(LanguagePaths.FACTOR_GENERIC_FIELD);
+        return text(player, lang, LanguagePaths.FACTOR_GENERIC_FIELD);
     }
 
-    private String factorButtonLabel(ILanguage lang, AuthFactor factor) {
+    private Component factorButtonLabel(Player player, ILanguage lang, AuthFactor factor) {
         if (factor == AuthFactor.TWO_FACTOR) {
-            return lang.getMessage(LanguagePaths.TWO_FACTOR_BUTTON);
+            return text(player, lang, LanguagePaths.TWO_FACTOR_BUTTON);
         }
-        return lang.getMessage(LanguagePaths.FACTOR_GENERIC_BUTTON);
+        return text(player, lang, LanguagePaths.FACTOR_GENERIC_BUTTON);
     }
 
     private static void addError(List<DialogBody> body, Component error) {
@@ -362,21 +375,21 @@ public class DialogAuthPrompt implements IAuthPrompt {
         }
     }
 
-    private static DialogBody.PlainMessage plain(String text) {
-        return new DialogBody.PlainMessage(Component.text(text), DialogBody.PlainMessage.DEFAULT_WIDTH);
+    private static DialogBody.PlainMessage plain(Component text) {
+        return new DialogBody.PlainMessage(text, DialogBody.PlainMessage.DEFAULT_WIDTH);
     }
 
-    private static DialogInput.Text textField(String key, String label, String initial) {
+    private static DialogInput.Text textField(String key, Component label, String initial) {
         // 4th arg is labelVisible, not a password mask. Vanilla text inputs have no mask field.
-        return new DialogInput.Text(key, DialogInput.DEFAULT_WIDTH, Component.text(label), true, initial, 64, null);
+        return new DialogInput.Text(key, DialogInput.DEFAULT_WIDTH, label, true, initial, 64, null);
     }
 
-    private static DialogActionButton button(String label, Key actionKey) {
-        return new DialogActionButton(Component.text(label), null, DialogActionButton.DEFAULT_WIDTH, new DialogAction.DynamicCustom(actionKey, null));
+    private static DialogActionButton button(Component label, Key actionKey) {
+        return new DialogActionButton(label, null, DialogActionButton.DEFAULT_WIDTH, new DialogAction.DynamicCustom(actionKey, null));
     }
 
-    private static Dialog buildDialog(String title, List<DialogBody> body, List<DialogInput> inputs, List<DialogActionButton> buttons) {
-        DialogMetadata metadata = new DialogMetadata(Component.text(title), null, false, false, DialogAfterAction.CLOSE, body, inputs);
+    private static Dialog buildDialog(Component title, List<DialogBody> body, List<DialogInput> inputs, List<DialogActionButton> buttons) {
+        DialogMetadata metadata = new DialogMetadata(title, null, false, false, DialogAfterAction.CLOSE, body, inputs);
         // Client codec requires columns > 0; vanilla/Minestom default is 2.
         return new Dialog.MultiAction(metadata, buttons, null, 2);
     }

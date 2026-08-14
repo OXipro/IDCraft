@@ -9,6 +9,8 @@ dependencies {
     implementation(libs.configlang.api)
     implementation(libs.cssdb)
     api(project(":api"))
+    api(libs.adventure.api)
+    api(libs.adventure.minimessage)
 
     implementation(libs.password4j)
     implementation(libs.gson)

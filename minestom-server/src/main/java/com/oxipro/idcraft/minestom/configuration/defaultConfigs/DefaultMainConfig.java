@@ -59,5 +59,7 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.AUTH_METHODS_2FA_TOTP, "");
 
         addDefault(MainConfigPaths.AUTH_LANGUAGE_DETECT_BEFORE_REGISTER, true);
+
+        save(true);
     }
 }
