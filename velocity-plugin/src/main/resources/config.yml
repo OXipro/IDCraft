@@ -67,6 +67,19 @@ forwarding:
   floodgate: VELOCITY_REPLICATION
   cracks: VELOCITY_REPLICATION
 
+commands:
+  auth:
+    enabled: true
+    aliases:
+      - security
+    permission: idcraft.command.auth
+    cooldown-seconds: 15
+
+account-desk:
+  enabled: true
+  return-to-previous-server: true
+  lock-to-auth-server: false
+
 logger:
   level: INFO # LOG4J Standard Level enum
   summary: true

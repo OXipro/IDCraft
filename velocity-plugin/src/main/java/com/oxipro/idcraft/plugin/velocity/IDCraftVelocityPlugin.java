@@ -14,6 +14,7 @@ import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
 import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.plugin.velocity.auth.PlayerAuthContext;
 import com.oxipro.idcraft.plugin.velocity.authservers.AuthServersManager;
+import com.oxipro.idcraft.plugin.velocity.commands.AuthCommand;
 import com.oxipro.idcraft.plugin.velocity.commands.TabCompletionDisabler;
 import com.oxipro.idcraft.plugin.velocity.configuration.ConfigManager;
 import com.oxipro.idcraft.plugin.velocity.configuration.paths.MainConfigPaths;
@@ -217,6 +218,24 @@ public class IDCraftVelocityPlugin implements IDCraft {
                 velocityServerListeners,
                 new VelocityLoginListeners(plugin, core.getAuthManager(), playerAuthContext)
         );
+
+        registerAuthCommand();
+    }
+
+    private void registerAuthCommand() {
+        if (!mainConfig.getBoolean(MainConfigPaths.COMMANDS_AUTH_ENABLED)) {
+            return;
+        }
+        var meta = server.getCommandManager().metaBuilder("auth").plugin(plugin);
+        java.util.List<String> aliases = mainConfig.getStringList(MainConfigPaths.COMMANDS_AUTH_ALIASES);
+        if (aliases != null && !aliases.isEmpty()) {
+            meta.aliases(aliases.toArray(String[]::new));
+        }
+        server.getCommandManager().register(meta.build(), new AuthCommand(plugin, authServersManager));
+    }
+
+    public IDCraftCore getCore() {
+        return core;
     }
 
     public void registerEvents(Object... listeners) {

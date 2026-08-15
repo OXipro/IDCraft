@@ -1,5 +1,6 @@
 package com.oxipro.idcraft.api.messaging;
 
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.api.messaging.handlers.IAuthServerMessagingHandler;
 import com.oxipro.idcraft.api.messaging.handlers.IProxyMessagingHandler;
 
@@ -13,8 +14,7 @@ public interface IMessagingProvider {
 
     boolean authenticated(UUID uuid, String authServerName);
 
-    boolean allowConnection(UUID uuid);
+    boolean allowConnection(UUID uuid, AuthVisitKind kind);
 
     default void disconnect() {}
-
 }

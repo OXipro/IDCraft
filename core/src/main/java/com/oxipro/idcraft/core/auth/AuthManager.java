@@ -186,20 +186,9 @@ public class AuthManager implements IAuthManager {
 
     @Override
     public AuthResult register(UUID uuid, String username, String password, String confirmPassword, String ip) {
-        if (password == null || password.length() < config.getMinPasswordLength()) {
-            return AuthResult.failure(AuthErrorCode.PASSWORD_TOO_SHORT);
-        }
-        if (containsWhitespace(password)) {
-            return AuthResult.failure(AuthErrorCode.PASSWORD_CONTAINS_SPACES);
-        }
-        if (config.isPasswordRegexEnabled()) {
-            if (config.getPasswordPattern() == null
-                    || !config.getPasswordPattern().matcher(password).matches()) {
-                return AuthResult.failure(AuthErrorCode.PASSWORD_REGEX_MISMATCH);
-            }
-        }
-        if (!password.equals(confirmPassword)) {
-            return AuthResult.failure(AuthErrorCode.PASSWORDS_DO_NOT_MATCH);
+        AuthResult policy = validateNewPassword(password, confirmPassword);
+        if (!policy.isSuccess()) {
+            return policy;
         }
         if (accountRepository.existsByUsername(username)) {
             return AuthResult.failure(AuthErrorCode.ACCOUNT_ALREADY_EXISTS);
@@ -283,6 +272,59 @@ public class AuthManager implements IAuthManager {
 
         recordSession(uuid, username, type, ip);
         return AuthResult.ok();
+    }
+
+    @Override
+    public AuthResult changePassword(UUID uuid, String currentPassword, String newPassword, String confirmPassword) {
+        Account account = accountRepository.findByUuid(uuid);
+        if (account == null) {
+            return AuthResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND);
+        }
+        AuthResult policy = validateNewPassword(newPassword, confirmPassword);
+        if (!policy.isSuccess()) {
+            return policy;
+        }
+        if (!passwordHasher.matches(currentPassword, account.getPasswordHash())) {
+            return AuthResult.failure(AuthErrorCode.WRONG_PASSWORD);
+        }
+        accountRepository.save(account.withPassword(passwordHasher.hash(newPassword)));
+        invalidateSession(uuid);
+        PlayerAuthType type = account.isPremium() ? PlayerAuthType.PREMIUM : PlayerAuthType.CRACKED;
+        recordSession(uuid, account.getUsername(), type, account.getLastIp());
+        return AuthResult.ok();
+    }
+
+    @Override
+    public AuthResult createPassword(UUID uuid, String username, String newPassword, String confirmPassword, String ip) {
+        if (accountRepository.findByUuid(uuid) != null || accountRepository.existsByUsername(username)) {
+            return AuthResult.failure(AuthErrorCode.ACCOUNT_ALREADY_EXISTS);
+        }
+        AuthResult policy = validateNewPassword(newPassword, confirmPassword);
+        if (!policy.isSuccess()) {
+            return policy;
+        }
+        PremiumLookupResult lookup = mojangVerifier.lookup(username);
+        if (lookup.isUnknown()) {
+            return AuthResult.failure(AuthErrorCode.PROVIDER_UNAVAILABLE);
+        }
+        boolean premiumAccount = lookup.isPremium() && lookup.getProfile().getUuid().equals(uuid);
+        if (lookup.isPremium() && !premiumAccount && !config.isAllowOnPremiumUsername()) {
+            return AuthResult.failure(AuthErrorCode.PREMIUM_USERNAME_RESERVED);
+        }
+        Account account = Account.newAccount(uuid, username, passwordHasher.hash(newPassword), ip, premiumAccount);
+        accountRepository.save(account);
+        PlayerAuthType type = premiumAccount ? PlayerAuthType.PREMIUM : PlayerAuthType.CRACKED;
+        recordSession(uuid, username, type, ip);
+        return AuthResult.ok();
+    }
+
+    @Override
+    public boolean verifyPassword(UUID uuid, String password) {
+        Account account = accountRepository.findByUuid(uuid);
+        if (account == null || password == null) {
+            return false;
+        }
+        return passwordHasher.matches(password, account.getPasswordHash());
     }
 
     @Override
@@ -551,6 +593,25 @@ public class AuthManager implements IAuthManager {
             return null;
         }
         return address.getHostAddress();
+    }
+
+    private AuthResult validateNewPassword(String password, String confirmPassword) {
+        if (password == null || password.length() < config.getMinPasswordLength()) {
+            return AuthResult.failure(AuthErrorCode.PASSWORD_TOO_SHORT);
+        }
+        if (containsWhitespace(password)) {
+            return AuthResult.failure(AuthErrorCode.PASSWORD_CONTAINS_SPACES);
+        }
+        if (config.isPasswordRegexEnabled()) {
+            if (config.getPasswordPattern() == null
+                    || !config.getPasswordPattern().matcher(password).matches()) {
+                return AuthResult.failure(AuthErrorCode.PASSWORD_REGEX_MISMATCH);
+            }
+        }
+        if (!password.equals(confirmPassword)) {
+            return AuthResult.failure(AuthErrorCode.PASSWORDS_DO_NOT_MATCH);
+        }
+        return AuthResult.ok();
     }
 
     private static boolean containsWhitespace(String s) {

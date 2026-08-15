@@ -99,6 +99,17 @@ auth:
   language:
     detect-before-register: true
 
+account-desk:
+  enabled: true
+  manage:
+    - PASSWORD
+    - EMAIL
+    - TWO_FACTOR
+  require-current-password-for:
+    - PASSWORD
+    - EMAIL
+    - TWO_FACTOR
+
 logger:
   level: INFO
   summary: true

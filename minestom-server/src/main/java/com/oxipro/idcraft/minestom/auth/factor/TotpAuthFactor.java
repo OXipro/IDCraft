@@ -8,14 +8,12 @@ import com.oxipro.idcraft.api.auth.factor.IAuthFactorHandler;
 
 import java.util.UUID;
 
-// Secret stored plain in DB (must stay recoverable for TOTP verification).
-// Real TOTP algorithm can replace verifyLogin later without changing storage.
-public class TotpFactorHandler implements IAuthFactorHandler {
+public final class TotpAuthFactor implements IAuthFactorHandler {
 
-    private final IAccountFactorRepository factorRepository;
+    private final IAccountFactorRepository factors;
 
-    public TotpFactorHandler(IAccountFactorRepository factorRepository) {
-        this.factorRepository = factorRepository;
+    public TotpAuthFactor(IAccountFactorRepository factors) {
+        this.factors = factors;
     }
 
     @Override
@@ -25,12 +23,12 @@ public class TotpFactorHandler implements IAuthFactorHandler {
 
     @Override
     public boolean isEnrolled(UUID uuid) {
-        return factorRepository.find(uuid, AuthFactor.TWO_FACTOR) != null;
+        return factors.find(uuid, AuthFactor.TWO_FACTOR) != null;
     }
 
     @Override
     public AuthResult verifyLogin(UUID uuid, String value) {
-        String secret = factorRepository.find(uuid, AuthFactor.TWO_FACTOR);
+        String secret = factors.find(uuid, AuthFactor.TWO_FACTOR);
         if (secret == null) {
             return AuthResult.ok();
         }
@@ -45,12 +43,12 @@ public class TotpFactorHandler implements IAuthFactorHandler {
         if (value == null || value.trim().isEmpty()) {
             return AuthResult.failure(AuthErrorCode.FACTOR_REQUIRED);
         }
-        factorRepository.save(uuid, AuthFactor.TWO_FACTOR, value.trim());
+        factors.save(uuid, AuthFactor.TWO_FACTOR, value.trim());
         return AuthResult.ok();
     }
 
     @Override
     public void clear(UUID uuid) {
-        factorRepository.delete(uuid, AuthFactor.TWO_FACTOR);
+        factors.delete(uuid, AuthFactor.TWO_FACTOR);
     }
 }

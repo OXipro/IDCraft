@@ -17,8 +17,11 @@ import com.oxipro.idcraft.api.support.servername.IServerNameProvider;
 import com.oxipro.idcraft.core.IDCraftCore;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
 import com.oxipro.idcraft.core.logging.StartSummary;
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.minestom.auth.AuthFlowController;
 import com.oxipro.idcraft.minestom.auth.ConnectAuthGate;
+import com.oxipro.idcraft.minestom.auth.desk.AccountDeskConfig;
+import com.oxipro.idcraft.minestom.auth.desk.AccountDeskController;
 import com.oxipro.idcraft.minestom.auth.factor.AuthFactorRegistry;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptSelector;
@@ -62,6 +65,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -98,7 +103,10 @@ public class IDCraftMinestomServer {
     private AuthPromptConfig promptConfig;
     private IAuthPrompt authPrompt;
     private AuthFlowController authFlowController;
+    private AccountDeskConfig accountDeskConfig;
+    private AccountDeskController accountDeskController;
     private final ConnectAuthGate connectAuthGate = new ConnectAuthGate();
+    private final Map<UUID, ConnectAuthGate.Grant> visits = new ConcurrentHashMap<>();
     private final ExecutorService asyncAuthExecutor = Executors.newFixedThreadPool(4);
 
     private static final long CONNECT_AUTH_TIMEOUT_SECONDS = 30;
@@ -223,7 +231,8 @@ public class IDCraftMinestomServer {
         dialogPrompt.registerListeners();
         commandPrompt.registerCommands();
 
-        AuthFactorRegistry factorRegistry = new AuthFactorRegistry(promptConfig, accountFactorRepository);
+        AuthFactorRegistry factorRegistry = new AuthFactorRegistry(
+                promptConfig, authManager, accountRepository, accountFactorRepository);
         String serverName = serverNameProvider.getCurrentServerName();
 
         this.authFlowController = new AuthFlowController(
@@ -232,6 +241,19 @@ public class IDCraftMinestomServer {
                 authPrompt,
                 promptConfig,
                 factorRegistry,
+                messageUtil,
+                messagingProvider,
+                serverName,
+                asyncAuthExecutor
+        );
+
+        this.accountDeskConfig = AccountDeskConfig.fromConfig(mainConfig);
+        this.accountDeskController = new AccountDeskController(
+                authManager,
+                accountRepository,
+                factorRegistry,
+                authPrompt,
+                accountDeskConfig,
                 messageUtil,
                 messagingProvider,
                 serverName,
@@ -263,9 +285,7 @@ public class IDCraftMinestomServer {
                 return;
             }
             Player player = event.getPlayer();
-            if (promptConfig.shouldHoldInConfiguration(protocolVersion(player))) {
-                // Finish the first join so Velocity can complete the connection,
-                // then immediately return to configuration for the dialogs.
+            if (shouldHoldDialogs(player)) {
                 MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
                     if (player.isOnline()) {
                         player.startConfigurationPhase();
@@ -273,26 +293,32 @@ public class IDCraftMinestomServer {
                 });
                 return;
             }
-            authFlowController.start(player);
+            startVisit(player);
         });
 
         eventHandler.addListener(PlayerDisconnectEvent.class, event -> {
             connectAuthGate.release(event.getPlayer().getUuid());
+            visits.remove(event.getPlayer().getUuid());
             authFlowController.onDisconnect(event.getPlayer());
+            accountDeskController.onDisconnect(event.getPlayer());
         });
     }
 
     private void onPlayerConfiguration(AsyncPlayerConfigurationEvent event) {
         Player player = event.getPlayer();
-        boolean holdDialogs = promptConfig.shouldHoldInConfiguration(protocolVersion(player));
+        boolean holdDialogs = shouldHoldDialogs(player);
 
-        if (event.isFirstConfig() && messagingProvider != null
-                && !connectAuthGate.await(player.getUuid(), CONNECT_AUTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            LOGGER.warn("No proxy CONNECT_AUTH for {} within {}s", player.getUsername(), CONNECT_AUTH_TIMEOUT_SECONDS);
-            if (player.isOnline()) {
-                player.kick(connectDeniedMessage(player));
+        if (event.isFirstConfig() && messagingProvider != null) {
+            ConnectAuthGate.Grant grant = connectAuthGate.awaitGrant(
+                    player.getUuid(), CONNECT_AUTH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (grant == null) {
+                LOGGER.warn("No proxy CONNECT_AUTH for {} within {}s", player.getUsername(), CONNECT_AUTH_TIMEOUT_SECONDS);
+                if (player.isOnline()) {
+                    player.kick(connectDeniedMessage(player));
+                }
+                return;
             }
-            return;
+            visits.put(player.getUuid(), grant);
         }
         if (!player.isOnline()) {
             return;
@@ -306,13 +332,35 @@ public class IDCraftMinestomServer {
         assignAuthWorld(event);
     }
 
+    private void startVisit(Player player) {
+        ConnectAuthGate.Grant grant = visits.get(player.getUuid());
+        AuthVisitKind kind = grant == null ? AuthVisitKind.LOGIN : grant.kind();
+        if (kind == AuthVisitKind.ACCOUNT_DESK && accountDeskConfig.enabled()) {
+            accountDeskController.start(player);
+            return;
+        }
+        authFlowController.start(player, kind);
+    }
+
+    private boolean awaitVisit(Player player) {
+        ConnectAuthGate.Grant grant = visits.get(player.getUuid());
+        if (grant != null && grant.kind() == AuthVisitKind.ACCOUNT_DESK) {
+            return accountDeskController.awaitTerminal(player, CONFIG_AUTH_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        }
+        return authFlowController.awaitTerminal(player, CONFIG_AUTH_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+    }
+
+    private boolean shouldHoldDialogs(Player player) {
+        return promptConfig.shouldHoldInConfiguration(protocolVersion(player));
+    }
+
     private void runConfigurationDialogs(AsyncPlayerConfigurationEvent event, Player player) {
         player.sendPacket(new UpdateEnabledFeaturesPacket(
                 event.getFeatureFlags().stream().map(StaticProtocolObject::name).toList()
         ));
 
-        authFlowController.start(player);
-        boolean finished = authFlowController.awaitTerminal(player, CONFIG_AUTH_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        startVisit(player);
+        boolean finished = awaitVisit(player);
         if (!player.isOnline()) {
             return;
         }
@@ -383,6 +431,9 @@ public class IDCraftMinestomServer {
             lines.add("Email provider: " + valueOrNa(promptConfig.getEmailProvider()));
             lines.add("2FA provider: " + valueOrNa(promptConfig.getTwoFactorProvider()));
             lines.add("Language detect-before-register: " + promptConfig.isDetectLanguageBeforeRegister());
+        }
+        if (accountDeskConfig != null) {
+            lines.add("Account desk: enabled=" + accountDeskConfig.enabled());
         }
         StartSummary.log(LOGGER, "IDCraft " + StartSummary.idcraftVersion() + " auth server has been enabled!", lines);
     }

@@ -16,4 +16,13 @@ public class MainConfigPaths {
     public static final String FORWARDING_PREMIUM = "forwarding.premium";
     public static final String FORWARDING_FLOODGATE = "forwarding.floodgate";
     public static final String FORWARDING_CRACKS = "forwarding.cracks";
+
+    public static final String COMMANDS_AUTH_ENABLED = "commands.auth.enabled";
+    public static final String COMMANDS_AUTH_ALIASES = "commands.auth.aliases";
+    public static final String COMMANDS_AUTH_PERMISSION = "commands.auth.permission";
+    public static final String COMMANDS_AUTH_COOLDOWN = "commands.auth.cooldown-seconds";
+
+    public static final String ACCOUNT_DESK_ENABLED = "account-desk.enabled";
+    public static final String ACCOUNT_DESK_RETURN_PREVIOUS = "account-desk.return-to-previous-server";
+    public static final String ACCOUNT_DESK_LOCK = "account-desk.lock-to-auth-server";
 }

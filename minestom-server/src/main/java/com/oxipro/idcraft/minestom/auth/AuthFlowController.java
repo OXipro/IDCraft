@@ -4,6 +4,7 @@ import com.oxipro.idcraft.api.account.IAccountRepository;
 import com.oxipro.idcraft.api.auth.AuthErrorCode;
 import com.oxipro.idcraft.api.auth.AuthFactor;
 import com.oxipro.idcraft.api.auth.AuthResult;
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.api.auth.IAuthManager;
 import com.oxipro.idcraft.api.auth.factor.IAuthFactorHandler;
 import com.oxipro.idcraft.minestom.auth.factor.AuthFactorRegistry;
@@ -74,6 +75,10 @@ public class AuthFlowController {
     }
 
     public void start(Player player) {
+        start(player, null);
+    }
+
+    public void start(Player player, AuthVisitKind kind) {
         UUID uuid = player.getUuid();
         terminals.computeIfAbsent(uuid, id -> new CompletableFuture<>());
         if (phases.putIfAbsent(uuid, Phase.IDLE) != null) {
@@ -87,9 +92,16 @@ public class AuthFlowController {
                 runMain(() -> complete(player));
                 return;
             }
-            boolean hasAccount = accountRepository.existsByUsername(player.getUsername());
             runMain(() -> {
-                if (hasAccount) {
+                if (kind == AuthVisitKind.REGISTER) {
+                    beginRegister(player);
+                    return;
+                }
+                if (kind == AuthVisitKind.LOGIN) {
+                    beginLogin(player);
+                    return;
+                }
+                if (accountRepository.existsByUsername(player.getUsername())) {
                     beginLogin(player);
                 } else {
                     beginRegister(player);

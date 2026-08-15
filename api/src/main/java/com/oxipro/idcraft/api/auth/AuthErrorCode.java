@@ -13,6 +13,8 @@ public enum AuthErrorCode {
     ACCOUNT_NOT_FOUND,
     ACCOUNT_LOCKED,
     WRONG_PASSWORD,
+    FACTOR_NOT_ENROLLED,
+    FACTOR_ALREADY_ENROLLED,
     PREMIUM_USERNAME_RESERVED,
     // Proxy assigned UUID does not match account UUID
     UUID_MISMATCH,

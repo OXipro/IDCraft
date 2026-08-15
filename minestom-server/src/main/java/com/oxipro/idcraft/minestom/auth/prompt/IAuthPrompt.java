@@ -27,5 +27,32 @@ public interface IAuthPrompt {
 
     void notifyError(Player player, Component message);
 
+    void notifyInfo(Player player, Component message);
+
+    void requestAccountHub(
+            Player player,
+            Map<AuthFactor, Boolean> factors,
+            java.util.function.Consumer<AuthFactor> onOpen,
+            Runnable onDone
+    );
+
+    void requestPasswordChange(
+            Player player,
+            boolean requireCurrent,
+            boolean createAccount,
+            java.util.function.Consumer<PasswordChangeSubmission> onSubmit,
+            Runnable onBack
+    );
+
+    void requestFactorEdit(
+            Player player,
+            AuthFactor factor,
+            boolean enrolled,
+            boolean requireCurrent,
+            java.util.function.BiConsumer<String, String> onSave,
+            java.util.function.Consumer<String> onRemove,
+            Runnable onBack
+    );
+
     void reset(Player player);
 }

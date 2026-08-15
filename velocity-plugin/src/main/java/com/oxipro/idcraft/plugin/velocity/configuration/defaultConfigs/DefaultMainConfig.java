@@ -36,6 +36,15 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.FORWARDING_FLOODGATE, "VELOCITY_REPLICATION");
         addDefault(MainConfigPaths.FORWARDING_CRACKS, "VELOCITY_REPLICATION");
 
+        addDefault(MainConfigPaths.COMMANDS_AUTH_ENABLED, true);
+        addDefault(MainConfigPaths.COMMANDS_AUTH_ALIASES, List.of("security"));
+        addDefault(MainConfigPaths.COMMANDS_AUTH_PERMISSION, "idcraft.command.auth");
+        addDefault(MainConfigPaths.COMMANDS_AUTH_COOLDOWN, 15);
+
+        addDefault(MainConfigPaths.ACCOUNT_DESK_ENABLED, true);
+        addDefault(MainConfigPaths.ACCOUNT_DESK_RETURN_PREVIOUS, true);
+        addDefault(MainConfigPaths.ACCOUNT_DESK_LOCK, false);
+
         save(true);
     }
 }

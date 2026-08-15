@@ -10,7 +10,7 @@ public class AuthDecisionDeny implements IAuthDecision {
         PREMIUM_USERNAME_RESERVED,
         ACCOUNT_LOCKED,
         WIRED,
-        // Premium lookup UNKNOWN — no yolo crack path
+        // Premium lookup UNKNOWN
         IDENTITY_PROVIDER_UNAVAILABLE
     }
 

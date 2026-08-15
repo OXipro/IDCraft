@@ -9,3 +9,11 @@ error:
     account-locked: "This account is temporarily locked. Try again later."
     wired: "Connection rejected."
     identity-provider-unavailable: "Authentication services are unavailable. Try again later."
+
+account-desk:
+  disabled: "Account management is disabled."
+  must-login: "You must finish login before managing your account."
+  already: "You are already in the account desk."
+  cooldown: "Please wait %SECONDS%s before using /auth again."
+  transferring: "Opening your account desk..."
+  locked: "Finish or leave the account desk first."
