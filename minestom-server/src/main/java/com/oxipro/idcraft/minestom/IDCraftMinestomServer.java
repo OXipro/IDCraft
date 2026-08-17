@@ -17,6 +17,7 @@ import com.oxipro.idcraft.core.IDCraftCore;
 import com.oxipro.idcraft.core.configuration.LanguageSettingsConfig;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
 import com.oxipro.idcraft.core.logging.StartSummary;
+import com.oxipro.idcraft.core.utils.message.MessageUtils;
 import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.minestom.auth.AuthFlowController;
 import com.oxipro.idcraft.minestom.auth.ConnectAuthGate;
@@ -101,6 +102,7 @@ public class IDCraftMinestomServer {
     private IAuthManager authManager;
 
     private IAuthWorldProvider authWorld;
+    private boolean authPlayersVisible = true;
     private AuthPromptConfig promptConfig;
     private IAuthPrompt authPrompt;
     private AuthFlowController authFlowController;
@@ -271,7 +273,11 @@ public class IDCraftMinestomServer {
         boolean advanceTime = mainConfig.getBoolean(MainConfigPaths.AUTH_WORLD_TIME_ADVANCE);
         authWorld.getInstance().setTime(time);
         authWorld.getInstance().setTag(Tag.Boolean("gamerule.advance_time"), advanceTime);
-
+        try {
+            this.authPlayersVisible = mainConfig.getBoolean(MainConfigPaths.AUTH_WORLD_PLAYERS_VISIBLE);
+        } catch (Exception e) {
+            this.authPlayersVisible = true;
+        }
     }
 
     private void registerEvents() {
@@ -287,6 +293,7 @@ public class IDCraftMinestomServer {
                 return;
             }
             Player player = event.getPlayer();
+            applyPlayerVisibility(player);
             if (shouldHoldDialogs(player)) {
                 MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
                     if (player.isOnline()) {
@@ -356,6 +363,14 @@ public class IDCraftMinestomServer {
         return promptConfig.shouldHoldInConfiguration(protocolVersion(player));
     }
 
+    private void applyPlayerVisibility(Player player) {
+        if (authPlayersVisible) {
+            return;
+        }
+        player.setAutoViewable(false);
+        player.updateViewableRule(viewer -> false);
+    }
+
     private void runConfigurationDialogs(AsyncPlayerConfigurationEvent event, Player player) {
         player.sendPacket(new UpdateEnabledFeaturesPacket(
                 event.getFeatureFlags().stream().map(StaticProtocolObject::name).toList()
@@ -394,7 +409,9 @@ public class IDCraftMinestomServer {
         try {
             return messageUtil.message(player, LanguagePaths.ERROR_CONNECT_NOT_ALLOWED);
         } catch (Exception e) {
-            return Component.text("You are not allowed to join this authentication server.");
+            return MessageUtils.parse(
+                    "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n"
+                            + "<red>You are not allowed to join this authentication server.</red>");
         }
     }
 

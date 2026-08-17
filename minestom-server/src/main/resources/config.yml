@@ -58,6 +58,8 @@ auth:
     time: # How do we manage time on the world ?
       advance: false # Should we advance time (like doDaylightCycle true ?)
       value: 0  # the value will be set at the world start (in ticks)
+    # Can players on the auth server see each other?
+    players-visible: true
 
   prompt:
     type: DIALOG # can be DIALOG, COMMAND or AUTO
