@@ -1,5 +1,6 @@
 package com.oxipro.idcraft.minestom.auth.prompt.prompts;
 
+import com.oxipro.cmu.configlang.api.language.ILanguage;
 import com.oxipro.idcraft.api.auth.AuthFactor;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
@@ -13,8 +14,10 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentString;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
+import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.network.ConnectionState;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -41,7 +44,9 @@ public class CommandAuthPrompt implements IAuthPrompt {
         private final Consumer<RegisterSubmission> onSubmit;
         private final Map<AuthFactor, Consumer<String>> factorSetupHandlers;
         private final Set<AuthFactor> completedFactors = EnumSet.noneOf(AuthFactor.class);
-        private String pendingEmail;
+        private String draftPassword;
+        private String draftConfirm;
+        private String draftEmail;
 
         private RegisterState(Consumer<RegisterSubmission> onSubmit, Map<AuthFactor, Consumer<String>> factorSetupHandlers) {
             this.onSubmit = onSubmit;
@@ -71,6 +76,10 @@ public class CommandAuthPrompt implements IAuthPrompt {
         Command login = new Command("login");
         ArgumentString password = new ArgumentString("password");
         ArgumentString totp = new ArgumentString("totp");
+        totp.setSuggestionCallback((sender, context, suggestion) -> {
+            String example = example(sender instanceof Player p ? p : null, LanguagePaths.COMMAND_TOTP_EXAMPLE, "123456");
+            suggestion.addEntry(new SuggestionEntry(example));
+        });
         login.addSyntax((sender, context) -> {
             if (!(sender instanceof Player player)) {
                 return;
@@ -102,27 +111,39 @@ public class CommandAuthPrompt implements IAuthPrompt {
         ArgumentString pass = new ArgumentString("password");
         ArgumentString confirm = new ArgumentString("confirm");
         ArgumentString email = new ArgumentString("email");
+        email.setSuggestionCallback((sender, context, suggestion) -> {
+            String example = example(sender instanceof Player p ? p : null, LanguagePaths.COMMAND_EMAIL_EXAMPLE, "example@email.com");
+            suggestion.addEntry(new SuggestionEntry(example));
+        });
+        register.setDefaultExecutor((sender, context) -> {
+            if (sender instanceof Player player) {
+                handleRegister(player, null, null, null);
+            }
+        });
         register.addSyntax((sender, context) -> handleRegister(sender, context.get(pass), context.get(confirm), null), pass, confirm);
         register.addSyntax((sender, context) -> handleRegister(sender, context.get(pass), context.get(confirm), context.get(email)), pass, confirm, email);
         MinecraftServer.getCommandManager().register(register);
 
         Command twoFa = new Command("2fa");
-        ArgumentString action = new ArgumentString("action");
+        ArgumentWord twoFaAction = new ArgumentWord("action").from("setup", "confirm");
         ArgumentString value = new ArgumentString("value");
+        value.setSuggestionCallback((sender, context, suggestion) -> {
+            String example = example(sender instanceof Player p ? p : null, LanguagePaths.COMMAND_TOTP_EXAMPLE, "123456");
+            suggestion.addEntry(new SuggestionEntry(example));
+        });
         twoFa.addSyntax((sender, context) -> {
             if (!(sender instanceof Player player)) {
                 return;
             }
-            String act = context.get(action);
-            if ("setup".equalsIgnoreCase(act)) {
+            if ("setup".equalsIgnoreCase(context.get(twoFaAction))) {
                 openTotpSetup(player);
             }
-        }, action);
+        }, twoFaAction);
         twoFa.addSyntax((sender, context) -> {
             if (!(sender instanceof Player player)) {
                 return;
             }
-            String act = context.get(action);
+            String act = context.get(twoFaAction);
             if (!"confirm".equalsIgnoreCase(act) && !"setup".equalsIgnoreCase(act)) {
                 return;
             }
@@ -130,13 +151,28 @@ public class CommandAuthPrompt implements IAuthPrompt {
             if (state instanceof Pending.FactorSetup setup) {
                 setup.onSubmit().accept(context.get(value));
             }
-        }, action, value);
+        }, twoFaAction, value);
         MinecraftServer.getCommandManager().register(twoFa);
 
         Command account = new Command("account");
-        ArgumentWord accountAction = new ArgumentWord("action");
-        ArgumentWord accountSub = new ArgumentWord("sub");
+        ArgumentWord accountAction = new ArgumentWord("action").from("email", "totp", "password", "done");
+        ArgumentWord accountSub = new ArgumentWord("sub").from("set", "remove", "setup", "confirm", "disable");
         ArgumentString accountValue = new ArgumentString("value");
+        accountValue.setSuggestionCallback((sender, context, suggestion) -> {
+            if (!(sender instanceof Player player)) {
+                return;
+            }
+            String action = "";
+            try {
+                action = context.get(accountAction);
+            } catch (Exception ignored) {
+            }
+            String path = "email".equalsIgnoreCase(action)
+                    ? LanguagePaths.COMMAND_EMAIL_EXAMPLE
+                    : LanguagePaths.COMMAND_TOTP_EXAMPLE;
+            String fallback = "email".equalsIgnoreCase(action) ? "example@email.com" : "123456";
+            suggestion.addEntry(new SuggestionEntry(example(player, path, fallback)));
+        });
         account.setDefaultExecutor((sender, context) -> {
             if (sender instanceof Player player && pending.get(player.getUuid()) instanceof Pending.Hub hub) {
                 showHubHints(player, hub.factors());
@@ -221,6 +257,10 @@ public class CommandAuthPrompt implements IAuthPrompt {
         if (!(sender instanceof Player player)) {
             return;
         }
+        handleRegister(player, pass, confirm, email);
+    }
+
+    private void handleRegister(Player player, String pass, String confirm, String email) {
         Pending state = pending.get(player.getUuid());
         if (!(state instanceof Pending.Register)) {
             return;
@@ -229,17 +269,31 @@ public class CommandAuthPrompt implements IAuthPrompt {
         if (reg == null) {
             return;
         }
+        if (pass != null && !pass.isBlank()) {
+            reg.draftPassword = pass;
+        }
+        if (confirm != null && !confirm.isBlank()) {
+            reg.draftConfirm = confirm;
+        }
+        if (email != null && !email.isBlank()) {
+            reg.draftEmail = email;
+        }
+
+        String password = reg.draftPassword;
+        String confirmPassword = reg.draftConfirm;
+        if (password == null || password.isBlank() || confirmPassword == null || confirmPassword.isBlank()) {
+            safeSend(player, messages.message(player, LanguagePaths.REGISTER_COMMAND_HINT));
+            return;
+        }
+
         Map<AuthFactor, String> values = new EnumMap<>(AuthFactor.class);
         if (config.isFactorEnabled(AuthFactor.PASSWORD)) {
-            values.put(AuthFactor.PASSWORD, pass);
+            values.put(AuthFactor.PASSWORD, password);
         }
-        if (config.isFactorEnabled(AuthFactor.EMAIL) && email != null) {
-            values.put(AuthFactor.EMAIL, email);
-            reg.pendingEmail = email;
-        } else if (reg.pendingEmail != null) {
-            values.put(AuthFactor.EMAIL, reg.pendingEmail);
+        if (config.isFactorEnabled(AuthFactor.EMAIL) && reg.draftEmail != null && !reg.draftEmail.isBlank()) {
+            values.put(AuthFactor.EMAIL, reg.draftEmail);
         }
-        reg.onSubmit.accept(new RegisterSubmission(values, confirm));
+        reg.onSubmit.accept(new RegisterSubmission(values, confirmPassword));
     }
 
     private void openTotpSetup(Player player) {
@@ -254,6 +308,30 @@ public class CommandAuthPrompt implements IAuthPrompt {
         requestFactorSetup(player, AuthFactor.TWO_FACTOR, handler);
     }
 
+    private String example(Player player, String path, String fallback) {
+        ILanguage lang = player != null ? messages.languageOf(player) : null;
+        if (lang == null) {
+            return fallback;
+        }
+        String raw = lang.getMessage(path);
+        if (raw == null || raw.isBlank() || raw.equals(path)) {
+            return fallback;
+        }
+        return raw;
+    }
+
+    private void safeSend(Player player, Component message) {
+        if (player == null || message == null) {
+            return;
+        }
+        try {
+            if (player.getPlayerConnection().getServerState() == ConnectionState.PLAY) {
+                player.sendMessage(message);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public void requestLogin(Player player, Consumer<LoginSubmission> onSubmit) {
         requestLogin(player, onSubmit, false);
@@ -263,26 +341,34 @@ public class CommandAuthPrompt implements IAuthPrompt {
     public void requestLogin(Player player, Consumer<LoginSubmission> onSubmit, boolean needTotp) {
         pending.put(player.getUuid(), new Pending.Login(onSubmit));
         if (needTotp) {
-            player.sendMessage(messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT_2FA));
+            safeSend(player, messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT_2FA));
         } else {
-            player.sendMessage(messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.LOGIN_COMMAND_HINT));
         }
     }
 
     @Override
     public void requestRegister(Player player, Consumer<RegisterSubmission> onSubmit, Map<AuthFactor, Consumer<String>> factorSetupHandlers) {
-        registerStates.put(player.getUuid(), new RegisterState(onSubmit, factorSetupHandlers));
+        RegisterState existing = registerStates.get(player.getUuid());
+        RegisterState state = new RegisterState(onSubmit, factorSetupHandlers);
+        if (existing != null) {
+            state.draftPassword = existing.draftPassword;
+            state.draftConfirm = existing.draftConfirm;
+            state.draftEmail = existing.draftEmail;
+            state.completedFactors.addAll(existing.completedFactors);
+        }
+        registerStates.put(player.getUuid(), state);
         pending.put(player.getUuid(), new Pending.Register());
-        player.sendMessage(messages.message(player, LanguagePaths.REGISTER_COMMAND_HINT));
+        safeSend(player, messages.message(player, LanguagePaths.REGISTER_COMMAND_HINT));
         if (config.isFactorEnabled(AuthFactor.TWO_FACTOR) && factorSetupHandlers.containsKey(AuthFactor.TWO_FACTOR)) {
-            player.sendMessage(messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_HINT));
         }
     }
 
     @Override
     public void requestFactorSetup(Player player, AuthFactor factor, Consumer<String> onSubmit) {
         pending.put(player.getUuid(), new Pending.FactorSetup(factor, onSubmit));
-        player.sendMessage(messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT));
+        safeSend(player, messages.message(player, LanguagePaths.TWO_FACTOR_COMMAND_SETUP_HINT));
     }
 
     @Override
@@ -293,17 +379,23 @@ public class CommandAuthPrompt implements IAuthPrompt {
         }
         state.completedFactors.add(factor);
         pending.put(player.getUuid(), new Pending.Register());
-        player.sendMessage(messages.message(player, LanguagePaths.FACTOR_COMPLETED_HINT));
+        safeSend(player, messages.message(player, LanguagePaths.FACTOR_COMPLETED_HINT));
+        if (state.draftPassword != null && state.draftConfirm != null
+                && !state.draftPassword.isBlank() && !state.draftConfirm.isBlank()) {
+            handleRegister(player, null, null, null);
+        } else {
+            safeSend(player, messages.message(player, LanguagePaths.REGISTER_COMMAND_HINT));
+        }
     }
 
     @Override
     public void notifyError(Player player, Component message) {
-        player.sendMessage(message);
+        safeSend(player, message);
     }
 
     @Override
     public void notifyInfo(Player player, Component message) {
-        player.sendMessage(message);
+        safeSend(player, message);
     }
 
     @Override
@@ -321,7 +413,7 @@ public class CommandAuthPrompt implements IAuthPrompt {
             Runnable onBack
     ) {
         pending.put(player.getUuid(), new Pending.Password(onSubmit, onBack, requireCurrent));
-        player.sendMessage(messages.message(player, createAccount
+        safeSend(player, messages.message(player, createAccount
                 ? LanguagePaths.DESK_COMMAND_CREATE_HINT
                 : LanguagePaths.DESK_COMMAND_PASSWORD_HINT));
     }
@@ -338,9 +430,9 @@ public class CommandAuthPrompt implements IAuthPrompt {
     ) {
         pending.put(player.getUuid(), new Pending.FactorEdit(factor, onSave, onRemove));
         if (factor == AuthFactor.EMAIL) {
-            player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_EMAIL_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_EMAIL_HINT));
         } else {
-            player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_TOTP_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_TOTP_HINT));
         }
     }
 
@@ -352,18 +444,18 @@ public class CommandAuthPrompt implements IAuthPrompt {
     }
 
     private void showHubHints(Player player, Map<AuthFactor, Boolean> factors) {
-        player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_HINT));
+        safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_HINT));
         if (factors.containsKey(AuthFactor.PASSWORD)) {
-            player.sendMessage(messages.message(player, Boolean.TRUE.equals(factors.get(AuthFactor.PASSWORD))
+            safeSend(player, messages.message(player, Boolean.TRUE.equals(factors.get(AuthFactor.PASSWORD))
                     ? LanguagePaths.DESK_COMMAND_PASSWORD_HINT
                     : LanguagePaths.DESK_COMMAND_CREATE_HINT));
         }
         if (factors.containsKey(AuthFactor.EMAIL)) {
-            player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_EMAIL_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_EMAIL_HINT));
         }
         if (factors.containsKey(AuthFactor.TWO_FACTOR)) {
-            player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_TOTP_HINT));
+            safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_TOTP_HINT));
         }
-        player.sendMessage(messages.message(player, LanguagePaths.DESK_COMMAND_DONE_HINT));
+        safeSend(player, messages.message(player, LanguagePaths.DESK_COMMAND_DONE_HINT));
     }
 }
