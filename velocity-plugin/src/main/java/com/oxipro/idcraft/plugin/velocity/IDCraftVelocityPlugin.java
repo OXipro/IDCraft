@@ -21,6 +21,7 @@ import com.oxipro.idcraft.plugin.velocity.configuration.ConfigManager;
 import com.oxipro.idcraft.plugin.velocity.configuration.paths.MainConfigPaths;
 import com.oxipro.idcraft.plugin.velocity.forwarding.ForwardingManager;
 import com.oxipro.idcraft.plugin.velocity.language.defaultLanguage.English;
+import com.oxipro.idcraft.plugin.velocity.language.defaultLanguage.French;
 import com.oxipro.idcraft.plugin.velocity.listeners.VelocityLoginListeners;
 import com.oxipro.idcraft.plugin.velocity.listeners.VelocityServerListeners;
 import com.oxipro.idcraft.plugin.velocity.messaging.BungeePluginMessagingProvider;
@@ -178,6 +179,7 @@ public class IDCraftVelocityPlugin implements IDCraft {
 
         Map<Locale, ILanguage> defaults = new HashMap<>();
         defaults.put(Locale.US, new English(plugin));
+        defaults.put(Locale.FRANCE, new French(plugin));
         configLang.init(defaults);
         this.languageManager = configLang.getLanguageManager();
         return languageManager != null;

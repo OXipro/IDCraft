@@ -1,0 +1,20 @@
+fancy-name: Francais
+
+error:
+  no-auth-server: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>Aucun serveur d'authentification n'est disponible.</red>\n<gray>Reessaie plus tard.</gray>"
+  auth-server-unavailable: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>Le serveur d'authentification est indisponible.</red>\n<gray>Reessaie plus tard.</gray>"
+  server-switch-not-allowed: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>Tu dois t'authentifier avant de changer de serveur.</red>"
+  no-available-server: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>Aucun serveur disponible.</red>\n<gray>Reessaie plus tard.</gray>"
+  auth-denied:
+    premium-username-reserved: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Ce pseudo est reserve a un compte premium.</red>"
+    account-locked: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Ce compte est temporairement verrouille.</red>\n<gray>Reessaie plus tard.</gray>"
+    wired: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Connexion refusee.</red>"
+    identity-provider-unavailable: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Les services d'authentification sont indisponibles.</red>\n<gray>Reessaie plus tard.</gray>"
+
+account-desk:
+  disabled: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>La gestion du compte est desactivee.</red>"
+  must-login: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <yellow>Termine la connexion</yellow> <gray>avant de gerer ton compte.</gray>"
+  already: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>Tu es deja dans le bureau compte.</gray>"
+  cooldown: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>Attends</gray> <yellow>%SECONDS%s</yellow> <gray>avant de reutiliser</gray> <aqua>/auth</aqua><gray>.</gray>"
+  transferring: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>Ouverture de ton</gray> <yellow>bureau compte</yellow><gray>...</gray>"
+  locked: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <yellow>Termine ou quitte</yellow> <gray>le bureau compte d'abord.</gray>"

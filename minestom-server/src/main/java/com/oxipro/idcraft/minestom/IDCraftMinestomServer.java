@@ -32,6 +32,7 @@ import com.oxipro.idcraft.minestom.configuration.ConfigManager;
 import com.oxipro.idcraft.minestom.configuration.paths.MainConfigPaths;
 import com.oxipro.idcraft.minestom.language.LanguagePaths;
 import com.oxipro.idcraft.minestom.language.defaultLanguage.English;
+import com.oxipro.idcraft.minestom.language.defaultLanguage.French;
 import com.oxipro.idcraft.minestom.utils.MessageUtil;
 import com.oxipro.idcraft.minestom.messaging.BungeePluginMessagingProvider;
 import com.oxipro.idcraft.minestom.network.NetworkConfig;
@@ -197,6 +198,7 @@ public class IDCraftMinestomServer {
         );
         Map<Locale, ILanguage> defaultLangList = new HashMap<>();
         defaultLangList.put(Locale.US, new English(server));
+        defaultLangList.put(Locale.FRANCE, new French(server));
         configLang.init(defaultLangList);
         languageManager = configLang.getLanguageManager();
         messageUtil = new MessageUtil(languageManager);

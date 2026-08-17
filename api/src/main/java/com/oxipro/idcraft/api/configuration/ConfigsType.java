@@ -4,7 +4,8 @@ public enum ConfigsType {
 
     CONFIG("config.yml"),
     CSSDB("cssdb.yml"),
-    LANG_EN("languages/en_US.yml");
+    LANG_EN("languages/en_US.yml"),
+    LANG_FR("languages/fr_FR.yml");
 
     public final String filePath;
 
