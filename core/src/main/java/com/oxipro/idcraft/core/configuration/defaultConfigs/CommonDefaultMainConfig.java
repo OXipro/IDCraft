@@ -52,5 +52,9 @@ public class CommonDefaultMainConfig {
 
         c.addDefault(CommonMainConfigPaths.LOGGER_LEVEL, Level.INFO.toString());
         c.addDefault(CommonMainConfigPaths.LOGGER_SUMMARY, true);
+
+        c.addDefault(CommonMainConfigPaths.LANGUAGE_CLIENT_LOCALE, true);
+        c.addDefault(CommonMainConfigPaths.LANGUAGE_IP, true);
+        c.addDefault(CommonMainConfigPaths.LANGUAGE_FALLBACK, "en_US");
     }
 }

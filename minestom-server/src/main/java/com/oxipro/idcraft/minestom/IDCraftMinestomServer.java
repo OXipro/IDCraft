@@ -5,7 +5,6 @@ import com.oxipro.cmu.configlang.api.language.LanguageSettings;
 import com.oxipro.cmu.configlang.minestom.ConfigLang;
 import com.oxipro.cmu.configlang.minestom.language.LanguageManager;
 import com.oxipro.cmu.configlang.standalone.config.ConfigFile;
-import com.oxipro.cmu.configlang.standalone.language.Language;
 import com.oxipro.cssdb.CSSDB;
 import com.oxipro.idcraft.api.account.IAccountFactorRepository;
 import com.oxipro.idcraft.api.account.IAccountRepository;
@@ -15,6 +14,7 @@ import com.oxipro.idcraft.api.platform.PlatformType;
 import com.oxipro.idcraft.api.session.ICacheProvider;
 import com.oxipro.idcraft.api.support.servername.IServerNameProvider;
 import com.oxipro.idcraft.core.IDCraftCore;
+import com.oxipro.idcraft.core.configuration.LanguageSettingsConfig;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
 import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.api.auth.AuthVisitKind;
@@ -188,16 +188,16 @@ public class IDCraftMinestomServer {
             throw new IllegalStateException("Cannot create languages directory: " + languagesDir.getAbsolutePath());
         }
 
+        LanguageSettings langSettings = LanguageSettingsConfig.fromConfig(mainConfig);
         configLang = new ConfigLang(
                 CONFIG_DIR,
                 core.getCssdb().getPlayerSettingCache(),
-                core.getCssdb().getPlayerSettingsRepository()
+                core.getCssdb().getPlayerSettingsRepository(),
+                langSettings
         );
-        Language defaultEn = new English(server);
         Map<Locale, ILanguage> defaultLangList = new HashMap<>();
-        defaultLangList.put(Locale.US, defaultEn);
-        LanguageSettings langSettings = new LanguageSettings.Builder().ipLanguage(true).clientLocale(true).fallbackLocale(Locale.US).build();
-        configLang.init(defaultLangList, langSettings);
+        defaultLangList.put(Locale.US, new English(server));
+        configLang.init(defaultLangList);
         languageManager = configLang.getLanguageManager();
         messageUtil = new MessageUtil(languageManager);
     }

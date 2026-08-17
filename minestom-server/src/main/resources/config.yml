@@ -110,6 +110,11 @@ account-desk:
     - EMAIL
     - TWO_FACTOR
 
+language:
+  client-locale: true
+  ip-language: true
+  fallback: en_US
+
 logger:
   level: INFO
   summary: true
