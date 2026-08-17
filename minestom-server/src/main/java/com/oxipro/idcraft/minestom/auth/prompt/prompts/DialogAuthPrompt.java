@@ -1,9 +1,11 @@
 package com.oxipro.idcraft.minestom.auth.prompt.prompts;
 
 import com.oxipro.cmu.configlang.api.language.ILanguage;
+import com.oxipro.cmu.configlang.api.language.Locales;
 import com.oxipro.idcraft.api.auth.AuthFactor;
 import com.oxipro.idcraft.core.utils.message.PlaceholderKeys;
 import com.oxipro.idcraft.core.utils.message.Placeholders;
+import com.oxipro.idcraft.minestom.auth.desk.AccountDeskConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.AuthPromptConfig;
 import com.oxipro.idcraft.minestom.auth.prompt.IAuthPrompt;
 import com.oxipro.idcraft.minestom.auth.prompt.LoginSubmission;
@@ -19,12 +21,14 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.dialog.*;
 import net.minestom.server.entity.Player;
+import net.minestom.server.network.ConnectionState;
 import net.minestom.server.event.player.PlayerConfigCustomClickEvent;
 import net.minestom.server.event.player.PlayerCustomClickEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.network.packet.server.common.ShowDialogPacket;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -43,6 +47,8 @@ public class DialogAuthPrompt implements IAuthPrompt {
     private static final String FIELD_EMAIL = "email";
     private static final String FIELD_TOTP = "totp_code";
     private static final String FIELD_FACTOR_VALUE = "factor_value";
+    private static final String FIELD_CURRENT = "current_password";
+    private static final String FIELD_NEW = "new_password";
 
     private static final Key LOGIN_SUBMIT = Key.key("idcraft:auth_login_submit");
     private static final Key REGISTER_SUBMIT = Key.key("idcraft:auth_register_submit");
@@ -54,11 +60,12 @@ public class DialogAuthPrompt implements IAuthPrompt {
     private static final Key DESK_FACTOR_SAVE = Key.key("idcraft:desk_factor_save");
     private static final Key DESK_FACTOR_REMOVE = Key.key("idcraft:desk_factor_remove");
     private static final Key DESK_FACTOR_BACK = Key.key("idcraft:desk_factor_back");
-    private static final String FIELD_CURRENT = "current_password";
-    private static final String FIELD_NEW = "new_password";
+    private static final Key LANG_OPEN = Key.key("idcraft:lang_open");
+    private static final Key LANG_BACK = Key.key("idcraft:lang_back");
+    private static final String LANG_PICK_PREFIX = "idcraft:lang_pick_";
 
     private sealed interface Pending permits Pending.Login, Pending.Register, Pending.FactorSetup,
-            Pending.Hub, Pending.Password, Pending.FactorEdit {
+            Pending.Hub, Pending.Password, Pending.FactorEdit, Pending.LanguagePick {
         record Login(Consumer<LoginSubmission> onSubmit, boolean needTotp) implements Pending {}
         record Register() implements Pending {}
         record FactorSetup(AuthFactor factor) implements Pending {}
@@ -66,28 +73,47 @@ public class DialogAuthPrompt implements IAuthPrompt {
         record Password(Consumer<PasswordChangeSubmission> onSubmit, Runnable onBack, boolean requireCurrent, boolean createAccount) implements Pending {}
         record FactorEdit(AuthFactor factor, boolean enrolled, boolean requireCurrent,
                           BiConsumer<String, String> onSave, Consumer<String> onRemove, Runnable onBack) implements Pending {}
+        record LanguagePick(Pending returnTo) implements Pending {}
     }
 
     private static final class RegisterState {
         private final Consumer<RegisterSubmission> onSubmit;
         private final Map<AuthFactor, Consumer<String>> factorSetupHandlers;
         private final Set<AuthFactor> completedFactors = EnumSet.noneOf(AuthFactor.class);
+        private String draftPassword = "";
+        private String draftConfirm = "";
+        private String draftEmail = "";
 
         private RegisterState(Consumer<RegisterSubmission> onSubmit, Map<AuthFactor, Consumer<String>> factorSetupHandlers) {
             this.onSubmit = onSubmit;
             this.factorSetupHandlers = factorSetupHandlers;
         }
+
+        private void saveDraft(String password, String confirm, String email) {
+            if (password != null && !password.isEmpty()) {
+                draftPassword = password;
+            }
+            if (confirm != null && !confirm.isEmpty()) {
+                draftConfirm = confirm;
+            }
+            if (email != null && !email.isEmpty()) {
+                draftEmail = email;
+            }
+        }
     }
 
     private final MessageUtil messages;
     private final AuthPromptConfig config;
+    private final AccountDeskConfig deskConfig;
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
     private final Map<UUID, RegisterState> registerStates = new ConcurrentHashMap<>();
     private final Map<UUID, Consumer<String>> activeFactorConsumer = new ConcurrentHashMap<>();
+    private final Map<UUID, Component> pendingInfo = new ConcurrentHashMap<>();
 
-    public DialogAuthPrompt(MessageUtil messages, AuthPromptConfig config) {
+    public DialogAuthPrompt(MessageUtil messages, AuthPromptConfig config, AccountDeskConfig deskConfig) {
         this.messages = messages;
         this.config = config;
+        this.deskConfig = deskConfig;
     }
 
     public void registerListeners() {
@@ -111,7 +137,15 @@ public class DialogAuthPrompt implements IAuthPrompt {
 
     @Override
     public void requestRegister(Player player, Consumer<RegisterSubmission> onSubmit, Map<AuthFactor, Consumer<String>> factorSetupHandlers) {
-        registerStates.put(player.getUuid(), new RegisterState(onSubmit, factorSetupHandlers));
+        RegisterState existing = registerStates.get(player.getUuid());
+        RegisterState state = new RegisterState(onSubmit, factorSetupHandlers);
+        if (existing != null) {
+            state.draftPassword = existing.draftPassword;
+            state.draftConfirm = existing.draftConfirm;
+            state.draftEmail = existing.draftEmail;
+            state.completedFactors.addAll(existing.completedFactors);
+        }
+        registerStates.put(player.getUuid(), state);
         pending.put(player.getUuid(), new Pending.Register());
         showRegisterDialog(player, null);
     }
@@ -154,7 +188,12 @@ public class DialogAuthPrompt implements IAuthPrompt {
 
     @Override
     public void notifyInfo(Player player, Component message) {
-        player.sendMessage(message);
+        if (canSendChat(player)) {
+            player.sendMessage(message);
+            return;
+        }
+        // CONFIG phase cannot send SystemChatPacket; show on next dialog instead
+        pendingInfo.put(player.getUuid(), message);
     }
 
     @Override
@@ -195,12 +234,35 @@ public class DialogAuthPrompt implements IAuthPrompt {
         pending.remove(uuid);
         registerStates.remove(uuid);
         activeFactorConsumer.remove(uuid);
+        pendingInfo.remove(uuid);
+        messages.clearSessionLanguage(player);
     }
 
     private void handleClick(Player player, Key key, BinaryTag payload) {
         UUID uuid = player.getUuid();
         Pending state = pending.get(uuid);
         if (state == null) {
+            return;
+        }
+
+        if (state instanceof Pending.LanguagePick pick) {
+            if (key.equals(LANG_BACK)) {
+                restorePending(player, pick.returnTo());
+                return;
+            }
+            Locale picked = localeFromPickKey(key);
+            if (picked != null) {
+                messages.setPlayerLanguage(player, picked);
+                restorePending(player, pick.returnTo());
+            }
+            return;
+        }
+
+        if (key.equals(LANG_OPEN) && (state instanceof Pending.Register || state instanceof Pending.Hub)) {
+            if (state instanceof Pending.Register) {
+                saveRegisterDraft(uuid, payload);
+            }
+            openLanguagePicker(player, state);
             return;
         }
 
@@ -255,16 +317,19 @@ public class DialogAuthPrompt implements IAuthPrompt {
         }
 
         if (key.equals(REGISTER_SUBMIT) && state instanceof Pending.Register) {
+            saveRegisterDraft(uuid, payload);
             Map<AuthFactor, String> values = new EnumMap<>(AuthFactor.class);
             String confirm = null;
+            RegisterState registerState = registerStates.get(uuid);
             if (config.isFactorEnabled(AuthFactor.PASSWORD)) {
-                values.put(AuthFactor.PASSWORD, readField(payload, FIELD_PASSWORD));
-                confirm = readField(payload, FIELD_CONFIRM_PASSWORD);
+                String password = registerState != null ? registerState.draftPassword : readField(payload, FIELD_PASSWORD);
+                confirm = registerState != null ? registerState.draftConfirm : readField(payload, FIELD_CONFIRM_PASSWORD);
+                values.put(AuthFactor.PASSWORD, password);
             }
             if (config.isFactorEnabled(AuthFactor.EMAIL)) {
-                values.put(AuthFactor.EMAIL, readField(payload, FIELD_EMAIL));
+                String email = registerState != null ? registerState.draftEmail : readField(payload, FIELD_EMAIL);
+                values.put(AuthFactor.EMAIL, email);
             }
-            RegisterState registerState = registerStates.get(uuid);
             if (registerState != null) {
                 registerState.onSubmit.accept(new RegisterSubmission(values, confirm));
             }
@@ -289,8 +354,43 @@ public class DialogAuthPrompt implements IAuthPrompt {
         if (state instanceof Pending.Register) {
             AuthFactor requested = factorFromOpenKey(key);
             if (requested != null) {
+                saveRegisterDraft(uuid, payload);
                 openFactorSetupFromRegister(player, requested);
             }
+        }
+    }
+
+    private void saveRegisterDraft(UUID uuid, BinaryTag payload) {
+        RegisterState state = registerStates.get(uuid);
+        if (state == null || !(payload instanceof CompoundBinaryTag compound) || compound.size() == 0) {
+            return;
+        }
+        state.saveDraft(
+                compound.getString(FIELD_PASSWORD, ""),
+                compound.getString(FIELD_CONFIRM_PASSWORD, ""),
+                compound.getString(FIELD_EMAIL, "")
+        );
+    }
+
+    private static boolean canSendChat(Player player) {
+        try {
+            return player.getPlayerConnection().getServerState() == ConnectionState.PLAY;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void openLanguagePicker(Player player, Pending returnTo) {
+        pending.put(player.getUuid(), new Pending.LanguagePick(returnTo));
+        showLanguagePicker(player, returnTo);
+    }
+
+    private void restorePending(Player player, Pending returnTo) {
+        pending.put(player.getUuid(), returnTo);
+        if (returnTo instanceof Pending.Register) {
+            showRegisterDialog(player, null);
+        } else if (returnTo instanceof Pending.Hub hub) {
+            showHub(player, hub.factors(), null);
         }
     }
 
@@ -331,6 +431,7 @@ public class DialogAuthPrompt implements IAuthPrompt {
     }
 
     private ILanguage resolveRegisterLanguage(Player player) {
+        // languageOf prefers session pick / DB; detect only when no pick yet
         if (config.isDetectLanguageBeforeRegister()) {
             return messages.detectLanguage(player);
         }
@@ -345,6 +446,14 @@ public class DialogAuthPrompt implements IAuthPrompt {
         return messages.message(player, lang, path, placeholders);
     }
 
+    private Component languageButtonLabel(Player player, ILanguage lang, String path) {
+        String fancy = lang != null ? lang.getFancyName() : null;
+        if (fancy == null || fancy.isBlank()) {
+            fancy = lang != null && lang.getLocale() != null ? lang.getLocale().toString() : "?";
+        }
+        return messages.message(player, lang, path, Placeholders.of(PlaceholderKeys.LANGUAGE, fancy));
+    }
+
     private void showHub(Player player, Map<AuthFactor, Boolean> factors, Component error) {
         ILanguage lang = messages.languageOf(player);
         List<DialogBody> body = new ArrayList<>();
@@ -352,8 +461,12 @@ public class DialogAuthPrompt implements IAuthPrompt {
         body.add(plain(text(player, lang, hasPassword
                 ? LanguagePaths.DESK_HUB_INTRO
                 : LanguagePaths.DESK_HUB_INTRO_NO_ACCOUNT)));
+        Component info = pendingInfo.remove(player.getUuid());
+        if (info != null) {
+            body.add(plain(info));
+        }
         addError(body, error);
-        List<DialogActionButton> buttons = new ArrayList<>();
+        List<DialogActionButton> actions = new ArrayList<>();
         for (Map.Entry<AuthFactor, Boolean> entry : factors.entrySet()) {
             Component label = factorButtonLabel(player, lang, entry.getKey());
             String status = entry.getValue()
@@ -364,12 +477,15 @@ public class DialogAuthPrompt implements IAuthPrompt {
                         ? LanguagePaths.DESK_HUB_PASSWORD
                         : LanguagePaths.DESK_HUB_PASSWORD_CREATE);
             } else {
-                label = label.append(Component.text(" | ")).append(text(player, lang, status));
+                label = label.append(Component.text(" | ", NamedTextColor.DARK_GRAY)).append(text(player, lang, status));
             }
-            buttons.add(button(label, deskFactorKey(entry.getKey())));
+            actions.add(button(label, deskFactorKey(entry.getKey())));
         }
-        buttons.add(button(text(player, lang, LanguagePaths.DESK_HUB_DONE), DESK_DONE));
-        show(player, buildDialog(text(player, lang, LanguagePaths.DESK_HUB_TITLE), body, List.of(), buttons));
+        if (deskConfig.languageSelector()) {
+            actions.add(button(languageButtonLabel(player, lang, LanguagePaths.DESK_HUB_LANGUAGE), LANG_OPEN));
+        }
+        DialogActionButton done = button(text(player, lang, LanguagePaths.DESK_HUB_DONE), DESK_DONE);
+        show(player, buildDialog(text(player, lang, LanguagePaths.DESK_HUB_TITLE), body, List.of(), actions, done));
     }
 
     private void showPassword(Player player, boolean requireCurrent, boolean createAccount, Component error) {
@@ -385,11 +501,11 @@ public class DialogAuthPrompt implements IAuthPrompt {
         }
         inputs.add(textField(FIELD_NEW, text(player, lang, LanguagePaths.DESK_PASSWORD_NEW), ""));
         inputs.add(textField(FIELD_CONFIRM_PASSWORD, text(player, lang, LanguagePaths.DESK_PASSWORD_CONFIRM), ""));
-        List<DialogActionButton> buttons = List.of(
-                button(text(player, lang, LanguagePaths.DESK_PASSWORD_SAVE), DESK_PASSWORD_SUBMIT),
-                button(text(player, lang, LanguagePaths.DESK_PASSWORD_BACK), DESK_PASSWORD_BACK)
+        List<DialogActionButton> actions = List.of(
+                button(text(player, lang, LanguagePaths.DESK_PASSWORD_SAVE), DESK_PASSWORD_SUBMIT)
         );
-        show(player, buildDialog(text(player, lang, LanguagePaths.DESK_PASSWORD_TITLE), body, inputs, buttons));
+        DialogActionButton back = button(text(player, lang, LanguagePaths.DESK_PASSWORD_BACK), DESK_PASSWORD_BACK);
+        show(player, buildDialog(text(player, lang, LanguagePaths.DESK_PASSWORD_TITLE), body, inputs, actions, back));
     }
 
     private void showFactorEdit(Player player, AuthFactor factor, boolean enrolled, boolean requireCurrent, Component error) {
@@ -404,14 +520,35 @@ public class DialogAuthPrompt implements IAuthPrompt {
         if (!enrolled) {
             inputs.add(textField(FIELD_FACTOR_VALUE, factorFieldLabel(player, lang, factor), ""));
         }
-        List<DialogActionButton> buttons = new ArrayList<>();
+        List<DialogActionButton> actions = new ArrayList<>();
         if (enrolled) {
-            buttons.add(button(text(player, lang, LanguagePaths.DESK_FACTOR_REMOVE), DESK_FACTOR_REMOVE));
+            actions.add(button(text(player, lang, LanguagePaths.DESK_FACTOR_REMOVE), DESK_FACTOR_REMOVE));
         } else {
-            buttons.add(button(text(player, lang, LanguagePaths.DESK_FACTOR_ENROLL), DESK_FACTOR_SAVE));
+            actions.add(button(text(player, lang, LanguagePaths.DESK_FACTOR_ENROLL), DESK_FACTOR_SAVE));
         }
-        buttons.add(button(text(player, lang, LanguagePaths.DESK_FACTOR_BACK), DESK_FACTOR_BACK));
-        show(player, buildDialog(factorTitle(player, lang, factor), body, inputs, buttons));
+        DialogActionButton back = button(text(player, lang, LanguagePaths.DESK_FACTOR_BACK), DESK_FACTOR_BACK);
+        show(player, buildDialog(factorTitle(player, lang, factor), body, inputs, actions, back));
+    }
+
+    private void showLanguagePicker(Player player, Pending returnTo) {
+        ILanguage lang = returnTo instanceof Pending.Register
+                ? resolveRegisterLanguage(player)
+                : messages.languageOf(player);
+        List<DialogBody> body = new ArrayList<>();
+        body.add(plain(text(player, lang, LanguagePaths.LANGUAGE_PICK_TITLE)));
+        List<DialogActionButton> actions = new ArrayList<>();
+        List<Locale> locales = new ArrayList<>(messages.languageManager().getLocales());
+        locales.sort(Comparator.comparing(Locale::toString));
+        for (Locale locale : locales) {
+            ILanguage option = messages.languageManager().getLanguage(locale);
+            String fancy = option != null ? option.getFancyName() : null;
+            if (fancy == null || fancy.isBlank()) {
+                fancy = locale.toString();
+            }
+            actions.add(button(Component.text(fancy), langPickKey(locale)));
+        }
+        DialogActionButton back = button(text(player, lang, LanguagePaths.LANGUAGE_PICK_BACK), LANG_BACK);
+        show(player, buildDialog(text(player, lang, LanguagePaths.LANGUAGE_PICK_TITLE), body, List.of(), actions, back));
     }
 
     private static Key deskFactorKey(AuthFactor factor) {
@@ -427,6 +564,28 @@ public class DialogAuthPrompt implements IAuthPrompt {
         return null;
     }
 
+    private static Key langPickKey(Locale locale) {
+        return Key.key(LANG_PICK_PREFIX + locale.toString().toLowerCase(Locale.ROOT));
+    }
+
+    private static Locale localeFromPickKey(Key key) {
+        String value = key.asString();
+        String bare = key.value();
+        String raw;
+        if (value.startsWith(LANG_PICK_PREFIX)) {
+            raw = value.substring(LANG_PICK_PREFIX.length());
+        } else if (bare.startsWith(LANG_PICK_PREFIX.substring("idcraft:".length()))) {
+            raw = bare.substring(LANG_PICK_PREFIX.substring("idcraft:".length()).length());
+        } else {
+            return null;
+        }
+        try {
+            return Locales.parse(raw);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void showLoginDialog(Player player, Component error, boolean needTotp) {
         ILanguage lang = resolveLoginLanguage(player);
 
@@ -440,11 +599,11 @@ public class DialogAuthPrompt implements IAuthPrompt {
             inputs.add(textField(FIELD_TOTP, text(player, lang, LanguagePaths.TWO_FACTOR_CODE_FIELD), ""));
         }
 
-        List<DialogActionButton> buttons = List.of(
+        List<DialogActionButton> actions = List.of(
                 button(text(player, lang, LanguagePaths.LOGIN_SUBMIT_BUTTON), LOGIN_SUBMIT)
         );
 
-        show(player, buildDialog(text(player, lang, LanguagePaths.LOGIN_TITLE), body, inputs, buttons));
+        show(player, buildDialog(text(player, lang, LanguagePaths.LOGIN_TITLE), body, inputs, actions, null));
     }
 
     private void showRegisterDialog(Player player, Component error) {
@@ -463,15 +622,16 @@ public class DialogAuthPrompt implements IAuthPrompt {
 
         List<DialogInput> inputs = new ArrayList<>();
         if (config.isFactorEnabled(AuthFactor.PASSWORD)) {
-            inputs.add(textField(FIELD_PASSWORD, text(player, lang, LanguagePaths.REGISTER_PASSWORD_FIELD), ""));
-            inputs.add(textField(FIELD_CONFIRM_PASSWORD, text(player, lang, LanguagePaths.REGISTER_CONFIRM_FIELD), ""));
+            inputs.add(textField(FIELD_PASSWORD, text(player, lang, LanguagePaths.REGISTER_PASSWORD_FIELD), state.draftPassword));
+            inputs.add(textField(FIELD_CONFIRM_PASSWORD, text(player, lang, LanguagePaths.REGISTER_CONFIRM_FIELD), state.draftConfirm));
         }
         if (config.isFactorEnabled(AuthFactor.EMAIL)) {
-            inputs.add(textField(FIELD_EMAIL, text(player, lang, LanguagePaths.REGISTER_EMAIL_FIELD), ""));
+            inputs.add(textField(FIELD_EMAIL, text(player, lang, LanguagePaths.REGISTER_EMAIL_FIELD),
+                    state.draftEmail != null ? state.draftEmail : ""));
         }
 
-        List<DialogActionButton> buttons = new ArrayList<>();
-        buttons.add(button(text(player, lang, LanguagePaths.REGISTER_SUBMIT_BUTTON), REGISTER_SUBMIT));
+        List<DialogActionButton> actions = new ArrayList<>();
+        actions.add(button(text(player, lang, LanguagePaths.REGISTER_SUBMIT_BUTTON), REGISTER_SUBMIT));
 
         for (AuthFactor factor : AuthFactor.values()) {
             if (!factor.requiresSetupMenu() || !config.isFactorEnabled(factor)) {
@@ -482,12 +642,16 @@ public class DialogAuthPrompt implements IAuthPrompt {
             }
             Component label = factorButtonLabel(player, lang, factor);
             if (state.completedFactors.contains(factor)) {
-                label = Component.text("\u2714 ").append(label);
+                label = Component.text("\u2714 ", NamedTextColor.GREEN).append(label);
             }
-            buttons.add(button(label, openKey(factor)));
+            actions.add(button(label, openKey(factor)));
         }
 
-        show(player, buildDialog(text(player, lang, LanguagePaths.REGISTER_TITLE), body, inputs, buttons));
+        if (config.isRegisterLanguageSelector()) {
+            actions.add(button(languageButtonLabel(player, lang, LanguagePaths.REGISTER_LANGUAGE_BUTTON), LANG_OPEN));
+        }
+
+        show(player, buildDialog(text(player, lang, LanguagePaths.REGISTER_TITLE), body, inputs, actions, null));
     }
 
     private void showFactorSetupDialog(Player player, AuthFactor factor, Component error) {
@@ -501,12 +665,12 @@ public class DialogAuthPrompt implements IAuthPrompt {
                 textField(FIELD_FACTOR_VALUE, factorFieldLabel(player, lang, factor), "")
         );
 
-        List<DialogActionButton> buttons = List.of(
-                button(text(player, lang, LanguagePaths.FACTOR_SUBMIT_BUTTON), FACTOR_SUBMIT),
-                button(text(player, lang, LanguagePaths.FACTOR_CANCEL_BUTTON), FACTOR_CANCEL)
+        List<DialogActionButton> actions = List.of(
+                button(text(player, lang, LanguagePaths.FACTOR_SUBMIT_BUTTON), FACTOR_SUBMIT)
         );
+        DialogActionButton cancel = button(text(player, lang, LanguagePaths.FACTOR_CANCEL_BUTTON), FACTOR_CANCEL);
 
-        show(player, buildDialog(factorTitle(player, lang, factor), body, inputs, buttons));
+        show(player, buildDialog(factorTitle(player, lang, factor), body, inputs, actions, cancel));
     }
 
     private Component passwordHint(Player player, ILanguage lang) {
@@ -572,7 +736,6 @@ public class DialogAuthPrompt implements IAuthPrompt {
     }
 
     private static DialogInput.Text textField(String key, Component label, String initial) {
-        // 4th arg is labelVisible, not a password mask. Vanilla text inputs have no mask field.
         return new DialogInput.Text(key, DialogInput.DEFAULT_WIDTH, label, true, initial, 64, null);
     }
 
@@ -580,10 +743,15 @@ public class DialogAuthPrompt implements IAuthPrompt {
         return new DialogActionButton(label, null, DialogActionButton.DEFAULT_WIDTH, new DialogAction.DynamicCustom(actionKey, null));
     }
 
-    private static Dialog buildDialog(Component title, List<DialogBody> body, List<DialogInput> inputs, List<DialogActionButton> buttons) {
+    private static Dialog buildDialog(
+            Component title,
+            List<DialogBody> body,
+            List<DialogInput> inputs,
+            List<DialogActionButton> actions,
+            DialogActionButton exitAction
+    ) {
         DialogMetadata metadata = new DialogMetadata(title, null, false, false, DialogAfterAction.CLOSE, body, inputs);
-        // Client codec requires columns > 0; vanilla/Minestom default is 2.
-        return new Dialog.MultiAction(metadata, buttons, null, 2);
+        return new Dialog.MultiAction(metadata, actions, exitAction, 2);
     }
 
     private static void show(Player player, Dialog dialog) {

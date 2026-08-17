@@ -18,6 +18,7 @@ public final class MainConfigPaths {
     public static final String AUTH_WORLD_SPAWN_PITCH = "auth.world.spawn.pitch";
     public static final String AUTH_WORLD_TIME_ADVANCE = "auth.world.time.advance";
     public static final String AUTH_WORLD_TIME_VALUE = "auth.world.time.value";
+    public static final String AUTH_WORLD_PLAYERS_VISIBLE = "auth.world.players-visible";
 
 
     public static final String AUTH_PROMPT_TYPE = "auth.prompt.type";
@@ -36,10 +37,12 @@ public final class MainConfigPaths {
     public static final String AUTH_METHODS_2FA_TOTP = "auth.methods.2fa.totp";
 
     public static final String AUTH_LANGUAGE_DETECT_BEFORE_REGISTER = "auth.language.detect-before-register";
+    public static final String AUTH_LANGUAGE_REGISTER_SELECTOR = "auth.language.register-selector";
 
     public static final String ACCOUNT_DESK_ENABLED = "account-desk.enabled";
     public static final String ACCOUNT_DESK_MANAGE = "account-desk.manage";
     public static final String ACCOUNT_DESK_REQUIRE_CURRENT_PASSWORD = "account-desk.require-current-password-for";
+    public static final String ACCOUNT_DESK_LANGUAGE_SELECTOR = "account-desk.language-selector";
 
     private MainConfigPaths() {
     }

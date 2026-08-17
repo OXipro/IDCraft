@@ -18,9 +18,15 @@ public class LanguagePaths {
     public static final String REGISTER_SUBMIT_BUTTON = "auth.register.submit-button";
     public static final String REGISTER_COMMAND_HINT = "auth.register.command-hint";
     public static final String REGISTER_EMAIL_FIELD = "auth.register.email-field";
+    public static final String REGISTER_EMAIL_DEFAULT = "auth.register.email-default";
     public static final String REGISTER_PASSWORD_HINT = "auth.register.password-hint";
     public static final String REGISTER_PASSWORD_REGEX_HINT = "auth.register.password-regex-hint";
     public static final String REGISTER_PASSWORD_NO_SPACES_HINT = "auth.register.password-no-spaces-hint";
+    public static final String REGISTER_LANGUAGE_BUTTON = "auth.register.language-button";
+    public static final String LANGUAGE_PICK_TITLE = "auth.language.pick-title";
+    public static final String LANGUAGE_PICK_BACK = "auth.language.pick-back";
+    public static final String COMMAND_EMAIL_EXAMPLE = "auth.command.email-example";
+    public static final String COMMAND_TOTP_EXAMPLE = "auth.command.totp-example";
 
     public static final String ERROR_PASSWORD_TOO_SHORT = "auth.error.password-too-short";
     public static final String ERROR_PASSWORD_CONTAINS_SPACES = "auth.error.password-contains-spaces";
@@ -62,6 +68,7 @@ public class LanguagePaths {
     public static final String DESK_HUB_PASSWORD = "account-desk.hub.password";
     public static final String DESK_HUB_PASSWORD_CREATE = "account-desk.hub.password-create";
     public static final String DESK_HUB_DONE = "account-desk.hub.done";
+    public static final String DESK_HUB_LANGUAGE = "account-desk.hub.language";
     public static final String DESK_HUB_FACTOR_LINKED = "account-desk.hub.factor-linked";
     public static final String DESK_HUB_FACTOR_OPEN = "account-desk.hub.factor-open";
     public static final String DESK_PASSWORD_TITLE = "account-desk.password.title";

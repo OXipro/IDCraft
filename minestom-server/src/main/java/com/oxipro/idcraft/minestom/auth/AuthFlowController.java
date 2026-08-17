@@ -1,5 +1,6 @@
 package com.oxipro.idcraft.minestom.auth;
 
+import com.oxipro.cmu.configlang.api.language.ILanguage;
 import com.oxipro.idcraft.api.account.IAccountRepository;
 import com.oxipro.idcraft.api.auth.AuthErrorCode;
 import com.oxipro.idcraft.api.auth.AuthFactor;
@@ -263,6 +264,10 @@ public class AuthFlowController {
             }
         }
 
+        ILanguage lang = messages.languageOf(player);
+        if (lang != null && lang.getLocale() != null) {
+            messages.setPlayerLanguage(player, lang.getLocale());
+        }
         runMain(() -> complete(player));
     }
 
