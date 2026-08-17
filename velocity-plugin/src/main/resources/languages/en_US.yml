@@ -1,19 +1,20 @@
 fancy-name: English
 
 error:
-  no-auth-server: "No authentication server is available. Try again later."
-  auth-server-unavailable: "The authentication server is unavailable. Try again later."
-  server-switch-not-allowed: "You must authenticate before switching servers."
+  no-auth-server: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>No authentication server is available.</red>\n<gray>Please try again later.</gray>"
+  auth-server-unavailable: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>The authentication server is unavailable.</red>\n<gray>Please try again later.</gray>"
+  server-switch-not-allowed: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>You must authenticate before switching servers.</red>"
+  no-available-server: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>No available server found.</red>\n<gray>Please try again later.</gray>"
   auth-denied:
-    premium-username-reserved: "This username is reserved for a premium account."
-    account-locked: "This account is temporarily locked. Try again later."
-    wired: "Connection rejected."
-    identity-provider-unavailable: "Authentication services are unavailable. Try again later."
+    premium-username-reserved: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>This username is reserved for a premium account.</red>"
+    account-locked: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>This account is temporarily locked.</red>\n<gray>Please try again later.</gray>"
+    wired: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Connection rejected.</red>"
+    identity-provider-unavailable: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient>\n\n<red>Authentication services are unavailable.</red>\n<gray>Please try again later.</gray>"
 
 account-desk:
-  disabled: "Account management is disabled."
-  must-login: "You must finish login before managing your account."
-  already: "You are already in the account desk."
-  cooldown: "Please wait %SECONDS%s before using /auth again."
-  transferring: "Opening your account desk..."
-  locked: "Finish or leave the account desk first."
+  disabled: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <red>Account management is currently disabled.</red>"
+  must-login: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <yellow>Finish login</yellow> <gray>before managing your account.</gray>"
+  already: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>You are already in the account desk.</gray>"
+  cooldown: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>Please wait</gray> <yellow>%SECONDS%s</yellow> <gray>before using</gray> <aqua>/auth</aqua> <gray>again.</gray>"
+  transferring: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <gray>Opening your</gray> <yellow>account desk</yellow><gray>...</gray>"
+  locked: "<gradient:#FFE082:#FFB300><bold>IDCraft</bold></gradient> <dark_gray>»</dark_gray> <yellow>Finish or leave</yellow> <gray>the account desk first.</gray>"

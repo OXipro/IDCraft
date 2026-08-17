@@ -4,6 +4,8 @@ import com.oxipro.cmu.configlang.api.config.IConfigFile;
 import com.oxipro.idcraft.api.auth.PlayerAuthType;
 import com.oxipro.idcraft.plugin.velocity.IDCraftVelocityPlugin;
 import com.oxipro.idcraft.plugin.velocity.forwarding.IForwardingProvider;
+import com.oxipro.idcraft.plugin.velocity.language.LanguagePaths;
+import com.oxipro.idcraft.plugin.velocity.utils.MessageUtil;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -18,10 +20,12 @@ public class VelocityReplicationForwardingProvider implements IForwardingProvide
 
     private final ProxyServer proxyServer;
     private final IConfigFile config;
+    private final MessageUtil messageUtil;
 
     public VelocityReplicationForwardingProvider(IDCraftVelocityPlugin plugin) {
         this.proxyServer = plugin.getProxyServer();
         this.config = plugin.getConfigManager().getMain();
+        this.messageUtil = plugin.getMessageUtil();
     }
 
     @Override
@@ -35,9 +39,7 @@ public class VelocityReplicationForwardingProvider implements IForwardingProvide
     public void handlePostAuth(Player player, String fromServer, PlayerAuthType authType) {
         Optional<RegisteredServer> target = resolveTarget(player);
         if (target.isEmpty()) {
-            player.disconnect(
-                    net.kyori.adventure.text.Component.text("No available server found.")
-            );
+            player.disconnect(messageUtil.message(player, LanguagePaths.ERROR_NO_AVAILABLE_SERVER));
             return;
         }
         player.createConnectionRequest(target.get()).fireAndForget();

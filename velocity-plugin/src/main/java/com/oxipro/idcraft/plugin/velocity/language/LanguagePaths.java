@@ -7,6 +7,7 @@ public final class LanguagePaths {
     public static final String ERROR_NO_AUTH_SERVER = "error.no-auth-server";
     public static final String ERROR_AUTH_SERVER_UNAVAILABLE = "error.auth-server-unavailable";
     public static final String ERROR_SERVER_SWITCH_NOT_ALLOWED = "error.server-switch-not-allowed";
+    public static final String ERROR_NO_AVAILABLE_SERVER = "error.no-available-server";
     public static final String ERROR_AUTH_DENIED_PREFIX = "error.auth-denied.";
 
     public static final String ERROR_AUTH_DENIED_PREMIUM_USERNAME_RESERVED =
