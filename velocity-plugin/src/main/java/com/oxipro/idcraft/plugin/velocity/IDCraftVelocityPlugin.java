@@ -10,6 +10,7 @@ import com.oxipro.idcraft.api.messaging.IMessagingProvider;
 import com.oxipro.idcraft.api.platform.PlatformType;
 import com.oxipro.idcraft.core.IDCraft;
 import com.oxipro.idcraft.core.IDCraftCore;
+import com.oxipro.idcraft.core.configuration.LanguageSettingsConfig;
 import com.oxipro.idcraft.core.configuration.paths.CommonMainConfigPaths;
 import com.oxipro.idcraft.core.logging.StartSummary;
 import com.oxipro.idcraft.plugin.velocity.auth.PlayerAuthContext;
@@ -166,11 +167,7 @@ public class IDCraftVelocityPlugin implements IDCraft {
     }
 
     public boolean initConfigLang() {
-        LanguageSettings languageSettings = new LanguageSettings.Builder()
-                .ipLanguage(true)
-                .clientLocale(true)
-                .fallbackLocale(Locale.US)
-                .build();
+        LanguageSettings languageSettings = LanguageSettingsConfig.fromConfig(configManager.getMain());
 
         this.configLang = new ConfigLang(
                 pluginData.toFile(),

@@ -55,4 +55,8 @@ public class CommonMainConfigPaths {
 
     public static final String LOGGER_LEVEL = "logger.level";
     public static final String LOGGER_SUMMARY = "logger.summary";
+
+    public static final String LANGUAGE_CLIENT_LOCALE = "language.client-locale";
+    public static final String LANGUAGE_IP = "language.ip-language";
+    public static final String LANGUAGE_FALLBACK = "language.fallback";
 }

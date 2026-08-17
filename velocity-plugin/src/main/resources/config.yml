@@ -80,6 +80,11 @@ account-desk:
   return-to-previous-server: true
   lock-to-auth-server: false
 
+language:
+  client-locale: true
+  ip-language: true
+  fallback: en_US
+
 logger:
   level: INFO # LOG4J Standard Level enum
   summary: true
