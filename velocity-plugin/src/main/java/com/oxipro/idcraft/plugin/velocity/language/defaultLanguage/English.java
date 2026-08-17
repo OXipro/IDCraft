@@ -30,6 +30,12 @@ public class English extends Language {
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_ACCOUNT_LOCKED, "This account is temporarily locked. Try again later.");
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_WIRED, "Connection rejected.");
         addDefault(LanguagePaths.ERROR_AUTH_DENIED_IDENTITY_PROVIDER_UNAVAILABLE, "Authentication services are unavailable. Try again later.");
+        addDefault(LanguagePaths.ACCOUNT_DESK_DISABLED, "Account management is disabled.");
+        addDefault(LanguagePaths.ACCOUNT_DESK_MUST_LOGIN, "You must finish login before managing your account.");
+        addDefault(LanguagePaths.ACCOUNT_DESK_ALREADY, "You are already in the account desk.");
+        addDefault(LanguagePaths.ACCOUNT_DESK_COOLDOWN, "Please wait %SECONDS%s before using /auth again.");
+        addDefault(LanguagePaths.ACCOUNT_DESK_TRANSFERRING, "Opening your account desk...");
+        addDefault(LanguagePaths.ACCOUNT_DESK_LOCKED, "Finish or leave the account desk first.");
         save(true);
     }
 }

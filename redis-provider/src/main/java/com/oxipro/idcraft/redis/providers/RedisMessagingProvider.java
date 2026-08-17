@@ -3,6 +3,7 @@ package com.oxipro.idcraft.redis.providers;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.api.messaging.IMessagingProvider;
 import com.oxipro.idcraft.api.messaging.handlers.IAuthServerMessagingHandler;
 import com.oxipro.idcraft.api.messaging.handlers.IProxyMessagingHandler;
@@ -77,7 +78,9 @@ public class RedisMessagingProvider implements IMessagingProvider {
 
             try {
                 UUID player = UUID.fromString(json.get("uuid").getAsString());
-                asmh.handle(player);
+                AuthVisitKind kind = AuthVisitKind.fromName(
+                        json.has("kind") ? json.get("kind").getAsString() : null);
+                asmh.handle(player, kind);
             } catch (IllegalArgumentException e) {
                 LOGGER.warn("Invalid UUID in AuthServer message: {}", json.get("uuid"));
             } catch (Exception e) {
@@ -137,9 +140,10 @@ public class RedisMessagingProvider implements IMessagingProvider {
     }
 
     @Override
-    public boolean allowConnection(UUID uuid) {
+    public boolean allowConnection(UUID uuid, AuthVisitKind kind) {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", uuid.toString());
+        json.addProperty("kind", (kind == null ? AuthVisitKind.LOGIN : kind).name());
         return publish(MessagingChannels.CONNECT, json.toString());
     }
 

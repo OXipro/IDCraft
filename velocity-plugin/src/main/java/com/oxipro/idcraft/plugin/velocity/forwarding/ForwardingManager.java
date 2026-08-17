@@ -35,10 +35,34 @@ public class ForwardingManager implements IProxyMessagingHandler {
     @Override
     public void handle(String fromServer, UUID playerId) {
         proxyServer.getPlayer(playerId).ifPresent(player -> {
+            if (authContext.isAccountDesk(playerId)) {
+                returnFromAccountDesk(player, fromServer);
+                return;
+            }
             authContext.clearNeedsAuth(playerId);
             PlayerAuthType authType = resolveAuthType(playerId);
             providerFor(authType).handlePostAuth(player, fromServer, authType);
         });
+    }
+
+    public void returnFromAccountDesk(Player player, String fromServer) {
+        UUID playerId = player.getUniqueId();
+        String previous = authContext.getPreviousServer(playerId).orElse(null);
+        authContext.clearAccountDesk(playerId);
+        boolean returnPrevious = true;
+        try {
+            returnPrevious = mainConfig.getBoolean(MainConfigPaths.ACCOUNT_DESK_RETURN_PREVIOUS);
+        } catch (Exception ignored) {
+        }
+        if (returnPrevious && previous != null && !previous.isBlank()) {
+            var target = proxyServer.getServer(previous);
+            if (target.isPresent()) {
+                player.createConnectionRequest(target.get()).fireAndForget();
+                return;
+            }
+        }
+        PlayerAuthType authType = resolveAuthType(playerId);
+        providerFor(authType).handlePostAuth(player, fromServer, authType);
     }
 
     public void handleInitialChoice(PlayerChooseInitialServerEvent event) {

@@ -1,13 +1,16 @@
 package com.oxipro.idcraft.plugin.velocity.listeners;
 
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.plugin.velocity.IDCraftVelocityPlugin;
 import com.oxipro.idcraft.plugin.velocity.auth.PlayerAuthContext;
 import com.oxipro.idcraft.plugin.velocity.authservers.AuthServersManager;
 import com.oxipro.idcraft.plugin.velocity.forwarding.ForwardingManager;
 import com.oxipro.idcraft.plugin.velocity.language.LanguagePaths;
+import com.oxipro.idcraft.plugin.velocity.configuration.paths.MainConfigPaths;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
+import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -41,7 +44,12 @@ public class VelocityServerListeners {
             if (authServer != null) {
                 event.setInitialServer(authServer);
                 if (plugin.getMessagingProvider() != null) {
-                    plugin.getMessagingProvider().allowConnection(player.getUniqueId());
+                    boolean registered = plugin.getCore().getAccountRepository()
+                            .existsByUsername(player.getUsername());
+                    plugin.getMessagingProvider().allowConnection(
+                            player.getUniqueId(),
+                            registered ? AuthVisitKind.LOGIN : AuthVisitKind.REGISTER
+                    );
                 }
             } else {
                 event.setInitialServer(null);
@@ -56,6 +64,18 @@ public class VelocityServerListeners {
     @Subscribe
     public void onServerPreConnect(ServerPreConnectEvent event) {
         Player player = event.getPlayer();
+        if (authContext.isAccountDesk(player.getUniqueId())) {
+            if (!plugin.getConfigManager().getMain().getBoolean(MainConfigPaths.ACCOUNT_DESK_LOCK)) {
+                return;
+            }
+            RegisteredServer destination = event.getResult().getServer().orElse(event.getOriginalServer());
+            if (authServersManager.isAuthServer(destination)) {
+                return;
+            }
+            event.setResult(ServerPreConnectEvent.ServerResult.denied());
+            player.sendMessage(plugin.getMessageUtil().message(player, LanguagePaths.ACCOUNT_DESK_LOCKED));
+            return;
+        }
         if (!authContext.needsAuth(player.getUniqueId())) {
             return;
         }
@@ -74,9 +94,29 @@ public class VelocityServerListeners {
         }
     }
 
+    @Subscribe
+    public void onServerConnected(ServerConnectedEvent event) {
+        Player player = event.getPlayer();
+        if (!authContext.isAccountDesk(player.getUniqueId())) {
+            return;
+        }
+        if (!authServersManager.isAuthServer(event.getServer())) {
+            authContext.clearAccountDesk(player.getUniqueId());
+        }
+    }
+
     @Subscribe(priority = Short.MIN_VALUE)
     public void onKickedFromServer(KickedFromServerEvent event) {
         Player player = event.getPlayer();
+        if (authContext.isAccountDesk(player.getUniqueId())) {
+            String previous = authContext.getPreviousServer(player.getUniqueId()).orElse(null);
+            authContext.clearAccountDesk(player.getUniqueId());
+            if (previous != null) {
+                plugin.getProxyServer().getServer(previous).ifPresent(server ->
+                        event.setResult(KickedFromServerEvent.RedirectPlayer.create(server)));
+            }
+            return;
+        }
         if (!authContext.needsAuth(player.getUniqueId())) {
             return;
         }

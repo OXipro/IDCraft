@@ -76,4 +76,10 @@ public interface IAuthManager {
      * @param uuid player UUID
      */
     void invalidateSession(UUID uuid);
+
+    AuthResult changePassword(UUID uuid, String currentPassword, String newPassword, String confirmPassword);
+
+    AuthResult createPassword(UUID uuid, String username, String newPassword, String confirmPassword, String ip);
+
+    boolean verifyPassword(UUID uuid, String password);
 }

@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class AuthPromptSelector implements IAuthPrompt {
@@ -77,6 +78,45 @@ public class AuthPromptSelector implements IAuthPrompt {
     @Override
     public void notifyError(Player player, Component message) {
         select(player).notifyError(player, message);
+    }
+
+    @Override
+    public void notifyInfo(Player player, Component message) {
+        select(player).notifyInfo(player, message);
+    }
+
+    @Override
+    public void requestAccountHub(
+            Player player,
+            Map<AuthFactor, Boolean> factors,
+            Consumer<AuthFactor> onOpen,
+            Runnable onDone
+    ) {
+        select(player).requestAccountHub(player, factors, onOpen, onDone);
+    }
+
+    @Override
+    public void requestPasswordChange(
+            Player player,
+            boolean requireCurrent,
+            boolean createAccount,
+            Consumer<PasswordChangeSubmission> onSubmit,
+            Runnable onBack
+    ) {
+        select(player).requestPasswordChange(player, requireCurrent, createAccount, onSubmit, onBack);
+    }
+
+    @Override
+    public void requestFactorEdit(
+            Player player,
+            AuthFactor factor,
+            boolean enrolled,
+            boolean requireCurrent,
+            BiConsumer<String, String> onSave,
+            Consumer<String> onRemove,
+            Runnable onBack
+    ) {
+        select(player).requestFactorEdit(player, factor, enrolled, requireCurrent, onSave, onRemove, onBack);
     }
 
     @Override

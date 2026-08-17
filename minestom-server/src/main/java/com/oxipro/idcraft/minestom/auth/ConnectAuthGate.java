@@ -1,5 +1,7 @@
 package com.oxipro.idcraft.minestom.auth;
 
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -7,54 +9,63 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * Holds a player in the Minecraft configuration phase until the proxy
- * confirms the join via Redis or plugin messaging ({@code CONNECT_AUTH}).
- */
 public class ConnectAuthGate {
 
     private static final long ALLOW_TTL_MS = TimeUnit.SECONDS.toMillis(45);
 
-    private final Map<UUID, Long> allowedAt = new ConcurrentHashMap<>();
-    private final Map<UUID, CompletableFuture<Void>> waiters = new ConcurrentHashMap<>();
-
-    public void allow(UUID uuid) {
-        if (uuid == null) {
-            return;
+    public record Grant(AuthVisitKind kind, long allowedAt) {
+        public Grant(AuthVisitKind kind) {
+            this(kind == null ? AuthVisitKind.LOGIN : kind, System.currentTimeMillis());
         }
-        allowedAt.put(uuid, System.currentTimeMillis());
-        CompletableFuture<Void> waiter = waiters.remove(uuid);
-        if (waiter != null) {
-            waiter.complete(null);
+
+        public boolean expired() {
+            return System.currentTimeMillis() - allowedAt > ALLOW_TTL_MS;
         }
     }
 
-    public boolean await(UUID uuid, long timeout, TimeUnit unit) {
+    private final Map<UUID, Grant> allowed = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Grant>> waiters = new ConcurrentHashMap<>();
+
+    public void allow(UUID uuid, AuthVisitKind kind) {
         if (uuid == null) {
-            return false;
+            return;
         }
-        if (consume(uuid)) {
-            return true;
+        Grant grant = new Grant(kind);
+        allowed.put(uuid, grant);
+        CompletableFuture<Grant> waiter = waiters.remove(uuid);
+        if (waiter != null) {
+            waiter.complete(grant);
         }
-        CompletableFuture<Void> future = waiters.computeIfAbsent(uuid, id -> new CompletableFuture<>());
-        if (consume(uuid)) {
+    }
+
+    public Grant awaitGrant(UUID uuid, long timeout, TimeUnit unit) {
+        if (uuid == null) {
+            return null;
+        }
+        Grant existing = consume(uuid);
+        if (existing != null) {
+            return existing;
+        }
+        CompletableFuture<Grant> future = waiters.computeIfAbsent(uuid, id -> new CompletableFuture<>());
+        existing = consume(uuid);
+        if (existing != null) {
             waiters.remove(uuid, future);
-            return true;
+            return existing;
         }
         try {
-            future.get(timeout, unit);
+            Grant grant = future.get(timeout, unit);
             consume(uuid);
-            return true;
+            return grant;
         } catch (TimeoutException e) {
             waiters.remove(uuid, future);
-            return false;
+            return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             waiters.remove(uuid, future);
-            return false;
+            return null;
         } catch (Exception e) {
             waiters.remove(uuid, future);
-            return false;
+            return null;
         }
     }
 
@@ -62,15 +73,18 @@ public class ConnectAuthGate {
         if (uuid == null) {
             return;
         }
-        allowedAt.remove(uuid);
-        CompletableFuture<Void> waiter = waiters.remove(uuid);
+        allowed.remove(uuid);
+        CompletableFuture<Grant> waiter = waiters.remove(uuid);
         if (waiter != null) {
             waiter.cancel(true);
         }
     }
 
-    private boolean consume(UUID uuid) {
-        Long at = allowedAt.remove(uuid);
-        return at != null && System.currentTimeMillis() - at <= ALLOW_TTL_MS;
+    private Grant consume(UUID uuid) {
+        Grant grant = allowed.remove(uuid);
+        if (grant == null || grant.expired()) {
+            return null;
+        }
+        return grant;
     }
 }

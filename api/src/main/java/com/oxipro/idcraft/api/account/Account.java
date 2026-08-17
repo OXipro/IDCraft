@@ -69,6 +69,11 @@ public class Account {
                 lastLoginAt, lastIp, failedAttempts, lockedUntil);
     }
 
+    public Account withPassword(String passwordHash) {
+        return new Account(uuid, username, usernameLower, passwordHash, premium, registeredAt,
+                lastLoginAt, lastIp, failedAttempts, lockedUntil);
+    }
+
     public UUID getUuid() {
         return uuid;
     }

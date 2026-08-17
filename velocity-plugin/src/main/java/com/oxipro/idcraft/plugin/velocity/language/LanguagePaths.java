@@ -18,6 +18,13 @@ public final class LanguagePaths {
     public static final String ERROR_AUTH_DENIED_IDENTITY_PROVIDER_UNAVAILABLE =
             "error.auth-denied.identity-provider-unavailable";
 
+    public static final String ACCOUNT_DESK_DISABLED = "account-desk.disabled";
+    public static final String ACCOUNT_DESK_MUST_LOGIN = "account-desk.must-login";
+    public static final String ACCOUNT_DESK_ALREADY = "account-desk.already";
+    public static final String ACCOUNT_DESK_COOLDOWN = "account-desk.cooldown";
+    public static final String ACCOUNT_DESK_TRANSFERRING = "account-desk.transferring";
+    public static final String ACCOUNT_DESK_LOCKED = "account-desk.locked";
+
     private LanguagePaths() {
     }
 }

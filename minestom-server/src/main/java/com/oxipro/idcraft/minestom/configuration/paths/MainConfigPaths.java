@@ -37,6 +37,10 @@ public final class MainConfigPaths {
 
     public static final String AUTH_LANGUAGE_DETECT_BEFORE_REGISTER = "auth.language.detect-before-register";
 
+    public static final String ACCOUNT_DESK_ENABLED = "account-desk.enabled";
+    public static final String ACCOUNT_DESK_MANAGE = "account-desk.manage";
+    public static final String ACCOUNT_DESK_REQUIRE_CURRENT_PASSWORD = "account-desk.require-current-password-for";
+
     private MainConfigPaths() {
     }
 }

@@ -103,6 +103,8 @@ public class MessageUtil {
             case ACCOUNT_LOCKED -> LanguagePaths.ERROR_ACCOUNT_LOCKED;
             case FACTOR_INVALID -> LanguagePaths.ERROR_FACTOR_INVALID;
             case FACTOR_REQUIRED -> LanguagePaths.ERROR_FACTOR_REQUIRED;
+            case FACTOR_NOT_ENROLLED -> LanguagePaths.ERROR_FACTOR_NOT_ENROLLED;
+            case FACTOR_ALREADY_ENROLLED -> LanguagePaths.ERROR_FACTOR_ALREADY_ENROLLED;
             case PROVIDER_UNAVAILABLE -> LanguagePaths.ERROR_PROVIDER_UNAVAILABLE;
             case WRONG_PASSWORD, UUID_MISMATCH -> LanguagePaths.ERROR_WRONG_PASSWORD;
         };

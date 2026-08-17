@@ -1,5 +1,6 @@
 package com.oxipro.idcraft.minestom.messaging;
 
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.api.messaging.IMessagingProvider;
 import com.oxipro.idcraft.api.messaging.MessagingChannels;
 import com.oxipro.idcraft.api.messaging.MessagingOpcodes;
@@ -37,11 +38,12 @@ public class BungeePluginMessagingProvider implements IMessagingProvider {
         if (!MessagingChannels.CONNECT.equals(event.getIdentifier())) {
             return;
         }
-        if (!MessagingOpcodes.isConnectAuth(event.getMessage())) {
+        byte[] data = event.getMessage();
+        if (data == null || data.length < 1) {
             return;
         }
         if (asmh != null) {
-            asmh.handle(event.getPlayer().getUuid());
+            asmh.handle(event.getPlayer().getUuid(), MessagingOpcodes.visitKind(data));
         }
     }
 
@@ -74,7 +76,7 @@ public class BungeePluginMessagingProvider implements IMessagingProvider {
     }
 
     @Override
-    public boolean allowConnection(UUID uuid) {
+    public boolean allowConnection(UUID uuid, AuthVisitKind kind) {
         return false;
     }
 }

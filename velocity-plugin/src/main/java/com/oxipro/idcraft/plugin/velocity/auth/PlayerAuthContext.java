@@ -103,6 +103,20 @@ public final class PlayerAuthContext {
     // After profile -> disconnect
     private final ConcurrentMap<UUID, Entry> byUuid = new ConcurrentHashMap<>();
 
+    private final ConcurrentMap<UUID, AccountDeskVisit> deskVisits = new ConcurrentHashMap<>();
+
+    public static final class AccountDeskVisit {
+        private final String previousServer;
+
+        public AccountDeskVisit(String previousServer) {
+            this.previousServer = previousServer;
+        }
+
+        public String previousServer() {
+            return previousServer;
+        }
+    }
+
     public void putPending(InboundConnection connection, IAuthDecision decision) {
         Objects.requireNonNull(connection, "connection");
         Objects.requireNonNull(decision, "decision");
@@ -190,12 +204,42 @@ public final class PlayerAuthContext {
     public void remove(UUID uuid) {
         if (uuid != null) {
             byUuid.remove(uuid);
+            deskVisits.remove(uuid);
+        }
+    }
+
+    public void beginAccountDesk(UUID uuid, String previousServer) {
+        if (uuid == null) {
+            return;
+        }
+        deskVisits.put(uuid, new AccountDeskVisit(previousServer));
+    }
+
+    public boolean isAccountDesk(UUID uuid) {
+        return uuid != null && deskVisits.containsKey(uuid);
+    }
+
+    public Optional<AccountDeskVisit> getAccountDesk(UUID uuid) {
+        if (uuid == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(deskVisits.get(uuid));
+    }
+
+    public Optional<String> getPreviousServer(UUID uuid) {
+        return getAccountDesk(uuid).map(AccountDeskVisit::previousServer);
+    }
+
+    public void clearAccountDesk(UUID uuid) {
+        if (uuid != null) {
+            deskVisits.remove(uuid);
         }
     }
 
     public void clear() {
         pending.clear();
         byUuid.clear();
+        deskVisits.clear();
     }
 
     private static Entry toEntry(IAuthDecision decision) {

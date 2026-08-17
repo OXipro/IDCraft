@@ -1,5 +1,6 @@
 package com.oxipro.idcraft.plugin.velocity.messaging;
 
+import com.oxipro.idcraft.api.auth.AuthVisitKind;
 import com.oxipro.idcraft.api.messaging.IMessagingProvider;
 import com.oxipro.idcraft.api.messaging.MessagingChannels;
 import com.oxipro.idcraft.api.messaging.MessagingOpcodes;
@@ -17,7 +18,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,7 +29,7 @@ public class BungeePluginMessagingProvider implements IMessagingProvider {
     public static final MinecraftChannelIdentifier CONNECT_CHANNEL =
             MinecraftChannelIdentifier.from(MessagingChannels.CONNECT);
 
-    private final Set<UUID> pendingConnectAuth = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, AuthVisitKind> pendingConnect = new ConcurrentHashMap<>();
     private final IDCraftVelocityPlugin plugin;
     private IProxyMessagingHandler proxyMessagingHandler;
 
@@ -68,54 +69,57 @@ public class BungeePluginMessagingProvider implements IMessagingProvider {
     }
 
     @Override
-    public boolean allowConnection(UUID uuid) {
+    public boolean allowConnection(UUID uuid, AuthVisitKind kind) {
         if (uuid == null) {
             return false;
         }
-        pendingConnectAuth.add(uuid);
+        pendingConnect.put(uuid, kind == null ? AuthVisitKind.LOGIN : kind);
         return true;
     }
 
     @Subscribe
     public void onPlayerEnteredConfiguration(PlayerEnteredConfigurationEvent event) {
-        trySendConnectAuth(event.player(), event.server());
+        trySendConnect(event.player(), event.server());
     }
 
     @Subscribe
     public void onPlayerConfiguration(PlayerConfigurationEvent event) {
-        trySendConnectAuth(event.player(), event.server());
+        trySendConnect(event.player(), event.server());
     }
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
-        trySendConnectAuth(event.getPlayer());
+        trySendConnect(event.getPlayer());
     }
 
     @Subscribe
     public void onServerPostConnect(ServerPostConnectEvent event) {
-        trySendConnectAuth(event.getPlayer());
+        trySendConnect(event.getPlayer());
     }
 
-    private void trySendConnectAuth(Player player) {
-        player.getCurrentServer().ifPresent(connection -> trySendConnectAuth(player, connection));
+    private void trySendConnect(Player player) {
+        player.getCurrentServer().ifPresent(connection -> trySendConnect(player, connection));
     }
 
-    private void trySendConnectAuth(Player player, ServerConnection connection) {
-        if (player == null || connection == null || !pendingConnectAuth.contains(player.getUniqueId())) {
+    private void trySendConnect(Player player, ServerConnection connection) {
+        if (player == null || connection == null) {
+            return;
+        }
+        AuthVisitKind kind = pendingConnect.get(player.getUniqueId());
+        if (kind == null) {
             return;
         }
         try {
-            if (connection.sendPluginMessage(CONNECT_CHANNEL, MessagingOpcodes.connectAuth())) {
-                pendingConnectAuth.remove(player.getUniqueId());
+            if (connection.sendPluginMessage(CONNECT_CHANNEL, MessagingOpcodes.connect(kind))) {
+                pendingConnect.remove(player.getUniqueId());
             }
         } catch (RuntimeException ignored) {
-            // Backend not ready yet; a later connect/config event will retry.
         }
     }
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
-        pendingConnectAuth.remove(event.getPlayer().getUniqueId());
+        pendingConnect.remove(event.getPlayer().getUniqueId());
     }
 
     @Override

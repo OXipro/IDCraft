@@ -2,7 +2,6 @@ package com.oxipro.idcraft.api.auth;
 
 import java.util.Locale;
 
-// Configurable auth factor (distinct from PlayerAuthType / AuthMode)
 public enum AuthFactor {
     PASSWORD(false),
     EMAIL(false),
@@ -18,7 +17,6 @@ public enum AuthFactor {
         return requiresSetupMenu;
     }
 
-    // Config keys: PASSWORD, EMAIL, 2FA
     public static AuthFactor fromConfigKey(String key) {
         if (key == null) {
             return null;
@@ -33,6 +31,10 @@ public enum AuthFactor {
         if ("2FA".equals(k) || "TWO_FACTOR".equals(k) || "TOTP".equals(k)) {
             return TWO_FACTOR;
         }
-        return null;
+        try {
+            return valueOf(k);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

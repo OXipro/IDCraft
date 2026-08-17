@@ -60,6 +60,10 @@ public class DefaultMainConfig extends ConfigFile {
 
         addDefault(MainConfigPaths.AUTH_LANGUAGE_DETECT_BEFORE_REGISTER, true);
 
+        addDefault(MainConfigPaths.ACCOUNT_DESK_ENABLED, true);
+        addDefault(MainConfigPaths.ACCOUNT_DESK_MANAGE, List.of("PASSWORD", "EMAIL", "TWO_FACTOR"));
+        addDefault(MainConfigPaths.ACCOUNT_DESK_REQUIRE_CURRENT_PASSWORD, List.of("PASSWORD", "EMAIL", "TWO_FACTOR"));
+
         save(true);
     }
 }

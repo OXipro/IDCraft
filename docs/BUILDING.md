@@ -1,6 +1,16 @@
 # Building IDCraft
 
-You need JDK 25 and a SQL database (PostgreSQL, MySQL, or MariaDB). Redis is only required if you enable sessions or Redis messaging.
+You need JDK 25 and an internet connection (for all the deps). <p>
+
+# Dependencies
+
+IDCraft implements many of my custom libraries. You probably need to build/install all of them:
+
+- [CSSDB API](https://github.com/OXipro/cssdb-api) (handles all the player settings database, ConfigLang depends on it)
+- [CMU Config Lang](https://github.com/OXipro/cmu-config-lang) (manages all the languages & config)
+- [OXipro's Shulker Fork](https://github.com/OXipro/Shulker) (handles autodetection and configuration when running in a shulker k8s cluster)
+
+# Build Process
 
 ```bash
 ./gradlew shadowJar
@@ -21,7 +31,6 @@ Artifacts:
 | `minestom-server` | Auth server: dialogs, commands, world, factors |
 | `db-postgres` / `db-mysql` | SQL repositories |
 | `redis-provider` | Session cache and Redis messaging |
-| `cache-local` | In-process cache |
 | `minestom-shulker-impl` / `velocity-shulker-impl` | Optional [Shulker](https://github.com/OXipro/Shulker) integration |
 
 Default `config.yml` files live in each runnable module (`velocity-plugin` and `minestom-server`).

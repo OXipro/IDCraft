@@ -9,14 +9,14 @@ import com.oxipro.idcraft.api.auth.factor.IAuthFactorHandler;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-public class EmailFactorHandler implements IAuthFactorHandler {
+public final class EmailAuthFactor implements IAuthFactorHandler {
 
     private static final Pattern SIMPLE_EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
-    private final IAccountFactorRepository factorRepository;
+    private final IAccountFactorRepository factors;
 
-    public EmailFactorHandler(IAccountFactorRepository factorRepository) {
-        this.factorRepository = factorRepository;
+    public EmailAuthFactor(IAccountFactorRepository factors) {
+        this.factors = factors;
     }
 
     @Override
@@ -26,7 +26,7 @@ public class EmailFactorHandler implements IAuthFactorHandler {
 
     @Override
     public boolean isEnrolled(UUID uuid) {
-        return factorRepository.find(uuid, AuthFactor.EMAIL) != null;
+        return factors.find(uuid, AuthFactor.EMAIL) != null;
     }
 
     @Override
@@ -43,18 +43,16 @@ public class EmailFactorHandler implements IAuthFactorHandler {
         if (!SIMPLE_EMAIL.matcher(email).matches()) {
             return AuthResult.failure(AuthErrorCode.FACTOR_INVALID);
         }
-
-        UUID existing = factorRepository.findUuidByEmail(email);
+        UUID existing = factors.findUuidByEmail(email);
         if (existing != null && !existing.equals(uuid)) {
             return AuthResult.failure(AuthErrorCode.FACTOR_INVALID);
         }
-
-        factorRepository.save(uuid, AuthFactor.EMAIL, email);
+        factors.save(uuid, AuthFactor.EMAIL, email);
         return AuthResult.ok();
     }
 
     @Override
     public void clear(UUID uuid) {
-        factorRepository.delete(uuid, AuthFactor.EMAIL);
+        factors.delete(uuid, AuthFactor.EMAIL);
     }
 }

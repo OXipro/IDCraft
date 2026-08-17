@@ -68,6 +68,45 @@ public class English extends Language {
         addDefault(LanguagePaths.FACTOR_CANCEL_BUTTON, "Cancel");
         addDefault(LanguagePaths.FACTOR_COMPLETED_HINT, "Factor setup completed. Finish registration when ready.");
 
+        addDefault(LanguagePaths.FACTOR_EMAIL_TITLE, "Email");
+        addDefault(LanguagePaths.FACTOR_EMAIL_INTRO, "Link an email address to your account.");
+        addDefault(LanguagePaths.FACTOR_EMAIL_FIELD, "Email");
+        addDefault(LanguagePaths.FACTOR_EMAIL_BUTTON, "Email");
+
+        addDefault(LanguagePaths.DESK_HUB_TITLE, "Account");
+        addDefault(LanguagePaths.DESK_HUB_INTRO, "Manage your login methods.");
+        addDefault(LanguagePaths.DESK_HUB_INTRO_NO_ACCOUNT, "Create a password to enable extra login methods.");
+        addDefault(LanguagePaths.DESK_HUB_PASSWORD, "Change password");
+        addDefault(LanguagePaths.DESK_HUB_PASSWORD_CREATE, "Create password");
+        addDefault(LanguagePaths.DESK_HUB_DONE, "Done");
+        addDefault(LanguagePaths.DESK_HUB_FACTOR_LINKED, "linked");
+        addDefault(LanguagePaths.DESK_HUB_FACTOR_OPEN, "not linked");
+        addDefault(LanguagePaths.DESK_PASSWORD_TITLE, "Password");
+        addDefault(LanguagePaths.DESK_PASSWORD_INTRO, "Enter your current password and a new one.");
+        addDefault(LanguagePaths.DESK_PASSWORD_CREATE_INTRO, "Choose a password for this account.");
+        addDefault(LanguagePaths.DESK_PASSWORD_CURRENT, "Current password");
+        addDefault(LanguagePaths.DESK_PASSWORD_NEW, "New password");
+        addDefault(LanguagePaths.DESK_PASSWORD_CONFIRM, "Confirm password");
+        addDefault(LanguagePaths.DESK_PASSWORD_SAVE, "Save");
+        addDefault(LanguagePaths.DESK_PASSWORD_BACK, "Back");
+        addDefault(LanguagePaths.DESK_PASSWORD_CHANGED, "Your password has been updated.");
+        addDefault(LanguagePaths.DESK_PASSWORD_CREATED, "Your password has been created.");
+        addDefault(LanguagePaths.DESK_FACTOR_ENROLL, "Save");
+        addDefault(LanguagePaths.DESK_FACTOR_REMOVE, "Remove");
+        addDefault(LanguagePaths.DESK_FACTOR_BACK, "Back");
+        addDefault(LanguagePaths.DESK_FACTOR_CURRENT, "Current password");
+        addDefault(LanguagePaths.DESK_FACTOR_ENROLLED, "Factor linked.");
+        addDefault(LanguagePaths.DESK_FACTOR_REMOVED, "Factor removed.");
+        addDefault(LanguagePaths.DESK_NEED_ACCOUNT, "Create a password before adding extra factors.");
+        addDefault(LanguagePaths.DESK_COMMAND_HINT, "Account desk commands:");
+        addDefault(LanguagePaths.DESK_COMMAND_PASSWORD_HINT, "/changepassword <current> <new> <confirm>");
+        addDefault(LanguagePaths.DESK_COMMAND_CREATE_HINT, "/changepassword <new> <confirm>");
+        addDefault(LanguagePaths.DESK_COMMAND_EMAIL_HINT, "/account email set <addr> | /account email remove");
+        addDefault(LanguagePaths.DESK_COMMAND_TOTP_HINT, "/account totp setup | /account totp confirm <code> | /account totp disable");
+        addDefault(LanguagePaths.DESK_COMMAND_DONE_HINT, "/account done");
+        addDefault(LanguagePaths.ERROR_FACTOR_NOT_ENROLLED, "This factor is not linked.");
+        addDefault(LanguagePaths.ERROR_FACTOR_ALREADY_ENROLLED, "This factor is already linked.");
+
         save(true);
     }
 }
