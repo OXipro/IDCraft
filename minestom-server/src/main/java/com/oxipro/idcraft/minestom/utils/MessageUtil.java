@@ -12,10 +12,14 @@ import net.minestom.server.entity.Player;
 
 import java.net.InetSocketAddress;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageUtil {
 
     private final LanguageManager languageManager;
+    private final Map<UUID, Locale> sessionLanguage = new ConcurrentHashMap<>();
 
     public MessageUtil(LanguageManager languageManager) {
         this.languageManager = languageManager;
@@ -51,6 +55,10 @@ public class MessageUtil {
 
     public ILanguage languageOf(Player player) {
         if (player != null) {
+            Locale session = sessionLanguage.get(player.getUuid());
+            if (session != null) {
+                return languageManager.getLanguage(session);
+            }
             return languageManager.getPlayerLanguage(player);
         }
         return fallbackLanguage();
@@ -58,9 +66,31 @@ public class MessageUtil {
 
     public ILanguage detectLanguage(Player player) {
         if (player != null) {
+            Locale session = sessionLanguage.get(player.getUuid());
+            if (session != null) {
+                return languageManager.getLanguage(session);
+            }
             return languageManager.detectPlayerLanguage(player);
         }
         return fallbackLanguage();
+    }
+
+    public void setPlayerLanguage(Player player, Locale locale) {
+        if (player == null || locale == null) {
+            return;
+        }
+        sessionLanguage.put(player.getUuid(), locale);
+        languageManager.setPlayerLanguage(player.getUuid(), locale);
+    }
+
+    public void clearSessionLanguage(Player player) {
+        if (player != null) {
+            sessionLanguage.remove(player.getUuid());
+        }
+    }
+
+    public LanguageManager languageManager() {
+        return languageManager;
     }
 
     private ILanguage fallbackLanguage() {

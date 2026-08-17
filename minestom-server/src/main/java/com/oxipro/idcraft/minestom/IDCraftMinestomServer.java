@@ -226,7 +226,8 @@ public class IDCraftMinestomServer {
 
     private void initAuthUi() {
         this.promptConfig = AuthPromptConfig.fromConfig(mainConfig);
-        DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(messageUtil, promptConfig);
+        this.accountDeskConfig = AccountDeskConfig.fromConfig(mainConfig);
+        DialogAuthPrompt dialogPrompt = new DialogAuthPrompt(messageUtil, promptConfig, accountDeskConfig);
         CommandAuthPrompt commandPrompt = new CommandAuthPrompt(messageUtil, promptConfig);
         this.authPrompt = new AuthPromptSelector(promptConfig, dialogPrompt, commandPrompt);
 
@@ -249,7 +250,6 @@ public class IDCraftMinestomServer {
                 asyncAuthExecutor
         );
 
-        this.accountDeskConfig = AccountDeskConfig.fromConfig(mainConfig);
         this.accountDeskController = new AccountDeskController(
                 authManager,
                 accountRepository,

@@ -41,6 +41,7 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.AUTH_WORLD_SPAWN_PITCH, 0.0);
         addDefault(MainConfigPaths.AUTH_WORLD_TIME_ADVANCE, false);
         addDefault(MainConfigPaths.AUTH_WORLD_TIME_VALUE, 0);
+        addDefault(MainConfigPaths.AUTH_WORLD_PLAYERS_VISIBLE, true);
 
         addDefault(MainConfigPaths.AUTH_PROMPT_TYPE, "DIALOG");
         addDefault(MainConfigPaths.AUTH_PROMPT_DIALOG_PHASE, "PLAYER_JOIN");
@@ -59,10 +60,12 @@ public class DefaultMainConfig extends ConfigFile {
         addDefault(MainConfigPaths.AUTH_METHODS_2FA_TOTP, "");
 
         addDefault(MainConfigPaths.AUTH_LANGUAGE_DETECT_BEFORE_REGISTER, true);
+        addDefault(MainConfigPaths.AUTH_LANGUAGE_REGISTER_SELECTOR, true);
 
         addDefault(MainConfigPaths.ACCOUNT_DESK_ENABLED, true);
         addDefault(MainConfigPaths.ACCOUNT_DESK_MANAGE, List.of("PASSWORD", "EMAIL", "TWO_FACTOR"));
         addDefault(MainConfigPaths.ACCOUNT_DESK_REQUIRE_CURRENT_PASSWORD, List.of("PASSWORD", "EMAIL", "TWO_FACTOR"));
+        addDefault(MainConfigPaths.ACCOUNT_DESK_LANGUAGE_SELECTOR, false);
 
         save(true);
     }

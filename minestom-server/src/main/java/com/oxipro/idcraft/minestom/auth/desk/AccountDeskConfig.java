@@ -13,20 +13,33 @@ public final class AccountDeskConfig {
     private final boolean enabled;
     private final Set<AuthFactor> manage;
     private final Set<AuthFactor> requireCurrentPassword;
+    private final boolean languageSelector;
 
-    private AccountDeskConfig(boolean enabled, Set<AuthFactor> manage, Set<AuthFactor> requireCurrentPassword) {
+    private AccountDeskConfig(
+            boolean enabled,
+            Set<AuthFactor> manage,
+            Set<AuthFactor> requireCurrentPassword,
+            boolean languageSelector
+    ) {
         this.enabled = enabled;
         this.manage = manage;
         this.requireCurrentPassword = requireCurrentPassword;
+        this.languageSelector = languageSelector;
     }
 
     public static AccountDeskConfig fromConfig(ConfigFile config) {
         Set<AuthFactor> manage = parseFactors(config.getStringList(MainConfigPaths.ACCOUNT_DESK_MANAGE));
         Set<AuthFactor> requireCurrent = parseFactors(config.getStringList(MainConfigPaths.ACCOUNT_DESK_REQUIRE_CURRENT_PASSWORD));
+        boolean languageSelector = false;
+        try {
+            languageSelector = config.getBoolean(MainConfigPaths.ACCOUNT_DESK_LANGUAGE_SELECTOR);
+        } catch (Exception ignored) {
+        }
         return new AccountDeskConfig(
                 config.getBoolean(MainConfigPaths.ACCOUNT_DESK_ENABLED),
                 manage,
-                requireCurrent
+                requireCurrent,
+                languageSelector
         );
     }
 
@@ -54,5 +67,9 @@ public final class AccountDeskConfig {
 
     public boolean requiresCurrentPassword(AuthFactor factor) {
         return factor != null && requireCurrentPassword.contains(factor);
+    }
+
+    public boolean languageSelector() {
+        return languageSelector;
     }
 }

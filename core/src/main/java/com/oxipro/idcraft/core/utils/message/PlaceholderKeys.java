@@ -12,6 +12,7 @@ public final class PlaceholderKeys {
     public static final String REASON = "REASON";
     public static final String MIN_LENGTH = "MIN_LENGTH";
     public static final String SECONDS = "SECONDS";
+    public static final String LANGUAGE = "LANGUAGE";
 
     private PlaceholderKeys() {
     }

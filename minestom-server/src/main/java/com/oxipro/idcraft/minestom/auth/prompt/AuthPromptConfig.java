@@ -29,6 +29,7 @@ public class AuthPromptConfig {
     private final String emailProvider;
     private final String twoFactorProvider;
     private final boolean detectLanguageBeforeRegister;
+    private final boolean registerLanguageSelector;
 
     private AuthPromptConfig(Builder b) {
         this.promptType = b.promptType;
@@ -41,6 +42,7 @@ public class AuthPromptConfig {
         this.emailProvider = b.emailProvider;
         this.twoFactorProvider = b.twoFactorProvider;
         this.detectLanguageBeforeRegister = b.detectLanguageBeforeRegister;
+        this.registerLanguageSelector = b.registerLanguageSelector;
     }
 
     public static AuthPromptConfig fromConfig(ConfigFile config) {
@@ -67,6 +69,11 @@ public class AuthPromptConfig {
             b.detectLanguageBeforeRegister = config.getBoolean(MainConfigPaths.AUTH_LANGUAGE_DETECT_BEFORE_REGISTER);
         } catch (Exception e) {
             b.detectLanguageBeforeRegister = true;
+        }
+        try {
+            b.registerLanguageSelector = config.getBoolean(MainConfigPaths.AUTH_LANGUAGE_REGISTER_SELECTOR);
+        } catch (Exception e) {
+            b.registerLanguageSelector = true;
         }
 
         return b.build();
@@ -119,6 +126,7 @@ public class AuthPromptConfig {
         private String emailProvider = null;
         private String twoFactorProvider = null;
         private boolean detectLanguageBeforeRegister = true;
+        private boolean registerLanguageSelector = true;
 
         private AuthPromptConfig build() {
             return new AuthPromptConfig(this);
@@ -159,4 +167,5 @@ public class AuthPromptConfig {
     public String getEmailProvider() { return emailProvider; }
     public String getTwoFactorProvider() { return twoFactorProvider; }
     public boolean isDetectLanguageBeforeRegister() { return detectLanguageBeforeRegister; }
+    public boolean isRegisterLanguageSelector() { return registerLanguageSelector; }
 }

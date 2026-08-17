@@ -98,6 +98,7 @@ auth:
 
   language:
     detect-before-register: true
+    register-selector: true
 
 account-desk:
   enabled: true
@@ -109,6 +110,7 @@ account-desk:
     - PASSWORD
     - EMAIL
     - TWO_FACTOR
+  language-selector: false
 
 language:
   client-locale: true
